@@ -1,0 +1,74 @@
+# ============================================
+# GLOBAL IGNORES
+# ============================================
+
+# IDEs y editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Sistemas operativos
+.DS_Store
+Thumbs.db
+
+# ============================================
+# BACKEND (Spring Boot / Java)
+# ============================================
+
+# Compilados
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven
+clinitech-backend/target/
+clinitech-backend/.mvn/
+clinitech-backend/mvnw
+clinitech-backend/mvnw.cmd
+
+# Gradle (si lo usas)
+clinitech-backend/.gradle/
+clinitech-backend/build/
+clinitech-backend/gradle/
+clinitech-backend/gradlew
+clinitech-backend/gradlew.bat
+
+# Logs
+clinitech-backend/*.log
+clinitech-backend/logs/
+
+# Configuración local de Spring Boot
+clinitech-backend/src/main/resources/application-local.properties
+clinitech-backend/src/main/resources/application-dev.properties
+
+# ============================================
+# FRONTEND (React / Node.js)
+# ============================================
+
+# Dependencias
+clinitech-frontend/node_modules/
+
+# Builds
+clinitech-frontend/dist/
+clinitech-frontend/build/
+
+# Cache
+clinitech-frontend/.cache/
+clinitech-frontend/.vite/
+
+# Logs
+clinitech-frontend/npm-debug.log*
+clinitech-frontend/yarn-debug.log*
+clinitech-frontend/yarn-error.log*
+
+# Variables de entorno (NUNCA subir esto)
+clinitech-frontend/.env
+clinitech-frontend/.env.local
+clinitech-frontend/.env.development
+clinitech-frontend/.env.production
+
+# Coverage de tests
+clinitech-frontend/coverage/
