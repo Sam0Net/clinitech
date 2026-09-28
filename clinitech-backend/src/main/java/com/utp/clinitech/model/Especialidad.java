@@ -1,108 +1,50 @@
 package com.utp.clinitech.model;
-//Imports
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "especialidades")
 public class Especialidad {
-    //Atributos
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+  @Column(nullable = false, unique = true, length = 100)
+  private String nombre;
+  @Column(length = 255)
+  private String descripcion;
+  @Column(nullable = false)
+  private boolean activo = true;
 
-    @NotBlank(message = "El nombre de la especialidad es obligatorio")
-    @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
-    private String nombre;
+  protected Especialidad() {
+  }
 
-    @Size(max = 255, message = "La descripción no puede exceder los 255 caracteres")
-    private String descripcion;
+  public Especialidad(String nombre, String descripcion) {
+    this.nombre = nombre;
+    this.descripcion = descripcion;
+  }
 
-    private LocalDateTime fechaRegistro;
+  public Long getId() {
+    return id;
+  }
 
-    private Boolean estado;
-    //Constructores
-    // Vacio
-    public Especialidad(){
-        this.fechaRegistro = LocalDateTime.now();
-        this.estado = true;
-    }
-    // Completo
-    public Especialidad(Long id, String nombre, String descripcion, LocalDateTime fechaRegistro, Boolean estado) {
-        this.id = id;
-        this.nombre = nombre;
-        this.descripcion = descripcion;
-        this.fechaRegistro = fechaRegistro;
-        this.estado = estado;
-    }
-    // Registro rápido
+  public String getNombre() {
+    return nombre;
+  }
 
-    public Especialidad(String nombre, String descripcion) {
-        this.nombre = nombre;
-        this.descripcion = descripcion;
-        this.fechaRegistro = LocalDateTime.now();
-        this.estado = true;
-    }
-    // Getters y Setters
+  public String getDescripcion() {
+    return descripcion;
+  }
 
-    public Long getId() {
-        return id;
-    }
+  public boolean isActivo() {
+    return activo;
+  }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+  public void actualizar(String nombre, String descripcion) {
+    this.nombre = nombre;
+    this.descripcion = descripcion;
+  }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public LocalDateTime getFechaRegistro() {
-        return fechaRegistro;
-    }
-
-    public void setFechaRegistro(LocalDateTime fechaRegistro) {
-        this.fechaRegistro = fechaRegistro;
-    }
-
-    public Boolean getEstado() {
-        return estado;
-    }
-
-    public void setEstado(Boolean estado) {
-        this.estado = estado;
-    }
-
-    // Metodos Auxiliares
-    @Override
-    public String toString() {
-        return "Especialidad{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                ", estado=" + estado +
-                '}';
-    }
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Especialidad that = (Especialidad) o;
-        return id != null && id.equals(that.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return id != null ? id.hashCode() : 0;
-    }
-
+  public void cambiarEstado(boolean activo) {
+    this.activo = activo;
+  }
 }

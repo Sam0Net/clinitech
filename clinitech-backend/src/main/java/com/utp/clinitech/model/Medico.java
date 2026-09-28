@@ -1,192 +1,86 @@
 package com.utp.clinitech.model;
-//Imports
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
-import java.time.LocalDateTime;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "medicos")
 public class Medico {
-    //Atributos privados
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+  @Column(nullable = false, length = 100)
+  private String nombres;
+  @Column(nullable = false, length = 100)
+  private String apellidos;
+  @Column(nullable = false, unique = true, length = 10)
+  private String cmp;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "especialidad_id")
+  private Especialidad especialidad;
+  @Column(nullable = false, length = 9)
+  private String telefono;
+  @Column(nullable = false, unique = true, length = 100)
+  private String correo;
+  @Column(name = "horario_atencion", nullable = false, length = 100)
+  private String horarioAtencion;
+  @Column(nullable = false)
+  private boolean activo = true;
 
-    @NotBlank(message = "Los nombres son obligatorios.")
-    @Size(max = 100, message = "Los nombres no pueden exceder los 100 caracteres")
-    private String nombres;
+  public Medico() {
+  }
 
-    @NotBlank(message = "Los apellidos son obligatorios")
-    @Size(max = 100, message = "Los apellidos no pueden exceder los 100 caracteres")
-    private String apellidos;
-    // Colegio Medico del Peru
-    @NotBlank(message = "El CMP es obligatorio")
-    @Size(min = 5, max = 10, message = "El CMP debe tener entre 5 y 10 caracteres")
-    private String cmp;
+  public Long getId() {
+    return id;
+  }
 
-    @NotNull(message = "Especialidad Obligatoria")
-    private Long especialidadId;
+  public String getNombres() {
+    return nombres;
+  }
 
-    @NotBlank(message = "El teléfono es obligatorio")
-    @Pattern(regexp = "\\d{9}", message = "El teléfono debe contener exactamente 9 dígitos")
-    private String telefono;
+  public String getApellidos() {
+    return apellidos;
+  }
 
-    @NotBlank(message = "El correo es obligatorio")
-    @Email(message = "EL correo debe tener un formato válido")
-    @Size(max = 100, message = "El correo no puede exceder los 100 caracteres")
-    private String correo;
+  public String getCmp() {
+    return cmp;
+  }
 
-    @Size(max = 100, message = "El horario de atención no puede exceder los 100 caracteres.")
-    private String horarioAtencion; // Ej: "Lunes-Viernes 8:00-14:00"
+  public Especialidad getEspecialidad() {
+    return especialidad;
+  }
 
-    private LocalDateTime fechaRegistro;
+  public String getTelefono() {
+    return telefono;
+  }
 
-    private Boolean estado;
+  public String getCorreo() {
+    return correo;
+  }
 
-    //Constructores
-    // Vacio
-    public Medico() {
-        this.fechaRegistro = LocalDateTime.now();
-        this.estado = true;
-    }
-    // Completo
-    public Medico(Long id, String nombres, String apellidos, String cmp, Long especialidadId, String telefono, String correo, String horarioAtencion, LocalDateTime fechaRegistro, Boolean estado) {
-        this.id = id;
-        this.nombres = nombres;
-        this.apellidos = apellidos;
-        this.cmp = cmp;
-        this.especialidadId = especialidadId;
-        this.telefono = telefono;
-        this.correo = correo;
-        this.horarioAtencion = horarioAtencion;
-        this.fechaRegistro = fechaRegistro;
-        this.estado = estado;
-    }
-    // Registro rápido
-    public Medico(String cmp, String nombres, String apellidos, Long especialidadId, String telefono, String correo) {
-        this.cmp = cmp;
-        this.nombres = nombres;
-        this.apellidos = apellidos;
-        this.especialidadId = especialidadId;
-        this.telefono = telefono;
-        this.correo = correo;
-    }
+  public String getHorarioAtencion() {
+    return horarioAtencion;
+  }
 
-    // Getters y Setters
+  public boolean isActivo() {
+    return activo;
+  }
 
-    public Long getId() {
-        return id;
-    }
+  public String nombreCompleto() {
+    return "Dr. " + nombres + " " + apellidos;
+  }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+  public void actualizar(String nombres, String apellidos, String cmp, Especialidad especialidad, String telefono,
+      String correo, String horarioAtencion) {
+    this.nombres = nombres;
+    this.apellidos = apellidos;
+    this.cmp = cmp;
+    this.especialidad = especialidad;
+    this.telefono = telefono;
+    this.correo = correo;
+    this.horarioAtencion = horarioAtencion;
+  }
 
-    public String getNombres() {
-        return nombres;
-    }
-
-    public void setNombres(String nombres) {
-        this.nombres = nombres;
-    }
-
-    public String getApellidos() {
-        return apellidos;
-    }
-
-    public void setApellidos(String apellidos) {
-        this.apellidos = apellidos;
-    }
-
-    public String getCmp() {
-        return cmp;
-    }
-
-    public void setCmp(String cmp) {
-        this.cmp = cmp;
-    }
-
-    public Long getEspecialidadId() {
-        return especialidadId;
-    }
-
-    public void setEspecialidadId(Long especialidadId) {
-        this.especialidadId = especialidadId;
-    }
-
-    public String getTelefono() {
-        return telefono;
-    }
-
-    public void setTelefono(String telefono) {
-        this.telefono = telefono;
-    }
-
-    public String getHorarioAtencion() {
-        return horarioAtencion;
-    }
-
-    public void setHorarioAtencion(String horarioAtencion) {
-        this.horarioAtencion = horarioAtencion;
-    }
-
-    public LocalDateTime getFechaRegistro() {
-        return fechaRegistro;
-    }
-
-    public void setFechaRegistro(LocalDateTime fechaRegistro) {
-        this.fechaRegistro = fechaRegistro;
-    }
-
-    public Boolean getEstado() {
-        return estado;
-    }
-
-    public void setEstado(Boolean estado) {
-        this.estado = estado;
-    }
-
-    public String getCorreo() {
-        return correo;
-    }
-
-    public void setCorreo(String correo) {
-        this.correo = correo;
-    }
-
-    // Metodos Auxiliares
-    // Nombre Completo del Médico
-    public String getNombreCompleto() {
-        return this.nombres + " " + this.apellidos;
-    }
-    // Nombres + Especialidad
-    public String getNombreTitulo(){
-        return "Dr. " + getNombreCompleto();
-    }
-    @Override
-    public String toString() {
-        return "Medico{" +
-                "id=" + id +
-                ", cmp='" + cmp + '\'' +
-                ", nombres='" + nombres + '\'' +
-                ", apellidos='" + apellidos + '\'' +
-                ", especialidadId=" + especialidadId +
-                ", correo='" + correo + '\'' +
-                ", estado=" + estado +
-                '}';
-    }
-
-    // Por investigar qué hace
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Medico medico = (Medico) o;
-        return id != null && id.equals(medico.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return id != null ? id.hashCode() : 0;
-    }
-
+  public void cambiarEstado(boolean activo) {
+    this.activo = activo;
+  }
 }

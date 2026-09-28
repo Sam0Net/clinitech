@@ -1,161 +1,87 @@
 package com.utp.clinitech.model;
-// Imports
+
+import java.time.OffsetDateTime;
 import com.utp.clinitech.model.enums.EstadoCita;
 import com.utp.clinitech.model.enums.PrioridadCita;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.persistence.*;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+@Entity
+@Table(name = "citas", uniqueConstraints = @UniqueConstraint(name = "uk_cita_medico_fecha", columnNames = { "medico_id",
+    "fecha_hora" }))
 public class Cita {
-    //Atributos
-    private Long Id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "paciente_id")
+  private Paciente paciente;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "medico_id")
+  private Medico medico;
+  @Column(name = "fecha_hora", nullable = false)
+  private OffsetDateTime fechaHora;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private EstadoCita estado = EstadoCita.PENDIENTE;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private PrioridadCita prioridad = PrioridadCita.NORMAL;
+  @Column(name = "motivo_consulta", nullable = false, length = 255)
+  private String motivoConsulta;
+  @Column(name = "creado_en", nullable = false, updatable = false)
+  private OffsetDateTime creadoEn;
 
-    @NotNull(message = "El ID del paciente es obligatorio")
-    private Long pacienteID;
+  protected Cita() {
+  }
 
-    @NotNull(message = "El ID del médico es obligatorio")
-    private Long medicoID;
+  public Cita(Paciente paciente, Medico medico, OffsetDateTime fechaHora, PrioridadCita prioridad,
+      String motivoConsulta) {
+    this.paciente = paciente;
+    this.medico = medico;
+    this.fechaHora = fechaHora;
+    this.prioridad = prioridad;
+    this.motivoConsulta = motivoConsulta;
+  }
 
-    @NotNull(message = "La fecha y hora de la cita es obligatoria")
-    private LocalDateTime fechaHora;
+  @PrePersist
+  void prePersist() {
+    creadoEn = OffsetDateTime.now();
+  }
 
-    @NotNull(message = "El estado de la cita es obligatorio")
-    private EstadoCita estado;
+  public Long getId() {
+    return id;
+  }
 
-    @NotNull(message = "La prioridad de la cita es obligatoria")
-    private PrioridadCita prioridad;
+  public Paciente getPaciente() {
+    return paciente;
+  }
 
-    @Size(max = 255, message = "El motivo de la consulta no puede exceder los 255 caracteres")
-    private String motivoConsulta;
+  public Medico getMedico() {
+    return medico;
+  }
 
-    private LocalDateTime fechaRegistro;
-    //Constructores
-    // Vacio
-    public Cita(){
-        this.estado = EstadoCita.PENDIENTE;
-        this.prioridad = PrioridadCita.NORMAL;
-        this.fechaRegistro = LocalDateTime.now();
-    }
-    // Completo
-    public Cita(Long id, Long pacienteID, Long medicoID, LocalDateTime fechaHora, EstadoCita estado, PrioridadCita prioridad, String motivoConsulta, LocalDateTime fechaRegistro) {
-        Id = id;
-        this.pacienteID = pacienteID;
-        this.medicoID = medicoID;
-        this.fechaHora = fechaHora;
-        this.estado = estado;
-        this.prioridad = prioridad;
-        this.motivoConsulta = motivoConsulta;
-        this.fechaRegistro = fechaRegistro;
-    }
-    // Registro rápido
-    public Cita(Long pacienteId, Long medicoId, LocalDateTime fechaHora,
-                PrioridadCita prioridad, String motivoConsulta) {
-        this.pacienteID = pacienteId;
-        this.medicoID = medicoId;
-        this.fechaHora = fechaHora;
-        this.estado = EstadoCita.PENDIENTE;
-        this.prioridad = prioridad;
-        this.motivoConsulta = motivoConsulta;
-        this.fechaRegistro = LocalDateTime.now();
-    }
-    // Getters y Setters
+  public OffsetDateTime getFechaHora() {
+    return fechaHora;
+  }
 
-    public Long getId() {
-        return Id;
-    }
+  public EstadoCita getEstado() {
+    return estado;
+  }
 
-    public void setId(Long id) {
-        Id = id;
-    }
+  public PrioridadCita getPrioridad() {
+    return prioridad;
+  }
 
-    public Long getPacienteID() {
-        return pacienteID;
-    }
+  public String getMotivoConsulta() {
+    return motivoConsulta;
+  }
 
-    public void setPacienteID(Long pacienteID) {
-        this.pacienteID = pacienteID;
-    }
+  public void reprogramar(OffsetDateTime fechaHora) {
+    this.fechaHora = fechaHora;
+    this.estado = EstadoCita.REPROGRAMADA;
+  }
 
-    public Long getMedicoID() {
-        return medicoID;
-    }
-
-    public void setMedicoID(Long medicoID) {
-        this.medicoID = medicoID;
-    }
-
-    public EstadoCita getEstado() {
-        return estado;
-    }
-
-    public void setEstado(EstadoCita estado) {
-        this.estado = estado;
-    }
-
-    public LocalDateTime getFechaHora() {
-        return fechaHora;
-    }
-
-    public void setFechaHora(LocalDateTime fechaHora) {
-        this.fechaHora = fechaHora;
-    }
-
-    public PrioridadCita getPrioridad() {
-        return prioridad;
-    }
-
-    public void setPrioridad(PrioridadCita prioridad) {
-        this.prioridad = prioridad;
-    }
-
-    public String getMotivoConsulta() {
-        return motivoConsulta;
-    }
-
-    public void setMotivoConsulta(String motivoConsulta) {
-        this.motivoConsulta = motivoConsulta;
-    }
-
-    public LocalDateTime getFechaRegistro() {
-        return fechaRegistro;
-    }
-
-    public void setFechaRegistro(LocalDateTime fechaRegistro) {
-        this.fechaRegistro = fechaRegistro;
-    }
-
-    // Metodos Auxiliares
-    // Verifica urgencia
-    public boolean esUrgencia() {
-        return this.prioridad == PrioridadCita.URGENTE;
-    }
-    // Cita atendida
-    public boolean estaAtendida() {
-        return this.estado == EstadoCita.ATENDIDA;
-    }
-    @Override
-    public String toString() {
-        return "Cita{" +
-                "id=" + Id +
-                ", pacienteId=" + pacienteID +
-                ", medicoId=" + medicoID +
-                ", fechaHora=" + fechaHora +
-                ", estado=" + estado +
-                ", prioridad=" + prioridad +
-                '}';
-    }
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Cita cita = (Cita) o;
-        return Id != null && Id.equals(cita.Id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Id != null ? Id.hashCode() : 0;
-    }
-
+  public void cambiarEstado(EstadoCita estado) {
+    this.estado = estado;
+  }
 }
