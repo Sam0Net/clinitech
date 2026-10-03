@@ -18,6 +18,7 @@ export JWT_SECRET="$(openssl rand -base64 32)"
 * **Administrador**: `admin`
 * **Médico**: `medico` (Dr. Carlos Mendoza Ramos)
 * **Paciente**: `paciente` (Roberto Gómez Salas)
+* **Recepcionista**: `recepcion`
 
 ## Contrato principal para el frontend y evaluación
 

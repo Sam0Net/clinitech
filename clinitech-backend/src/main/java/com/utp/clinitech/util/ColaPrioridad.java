@@ -8,8 +8,10 @@ import com.utp.clinitech.model.Cita;
 import com.utp.clinitech.model.enums.PrioridadCita;
 
 /**
- * Montículo Binario (Min-Heap) propio para la gestión de citas en triaje médico.
- * Prioriza citas de condición URGENTE frente a NORMAL, desempatando por fecha y hora más temprana.
+ * Montículo Binario (Min-Heap) propio para la gestión de citas en triaje
+ * médico.
+ * Prioriza citas de condición URGENTE frente a NORMAL, desempatando por fecha y
+ * hora más temprana.
  */
 public class ColaPrioridad {
 

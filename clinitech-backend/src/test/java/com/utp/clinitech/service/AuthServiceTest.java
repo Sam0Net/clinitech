@@ -1,7 +1,9 @@
 package com.utp.clinitech.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,5 +84,8 @@ class AuthServiceTest {
     assertEquals(RolUsuario.MEDICO, LoginRequest.of("m", "123", "medico").role());
     assertEquals(RolUsuario.ADMIN, LoginRequest.of("a", "123", "admin").role());
     assertEquals(RolUsuario.ADMIN, LoginRequest.of("a", "123", "ADMIN").role());
+    assertEquals(RolUsuario.RECEPCIONISTA, LoginRequest.of("r", "123", "recepcionista").role());
+    assertEquals(RolUsuario.RECEPCIONISTA, LoginRequest.of("r", "123", "recepcion").role());
+    assertEquals(RolUsuario.RECEPCIONISTA, LoginRequest.of("r", "123", "receptionist").role());
   }
 }

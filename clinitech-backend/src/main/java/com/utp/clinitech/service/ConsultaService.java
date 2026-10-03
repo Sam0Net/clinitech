@@ -4,11 +4,16 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.utp.clinitech.dao.*;
-import com.utp.clinitech.dto.*;
+import com.utp.clinitech.dao.CitaDAO;
+import com.utp.clinitech.dao.ConsultaDAO;
+import com.utp.clinitech.dto.ConsultaRequest;
+import com.utp.clinitech.dto.ConsultaResponse;
 import com.utp.clinitech.exception.ApiException;
-import com.utp.clinitech.model.*;
-import com.utp.clinitech.model.enums.*;
+import com.utp.clinitech.model.Cita;
+import com.utp.clinitech.model.Consulta;
+import com.utp.clinitech.model.Usuario;
+import com.utp.clinitech.model.enums.EstadoCita;
+import com.utp.clinitech.model.enums.RolUsuario;
 
 @Service
 @Transactional(readOnly = true)

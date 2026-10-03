@@ -1,15 +1,24 @@
 package com.utp.clinitech.service;
 
-import java.time.*;
-import java.util.*;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.utp.clinitech.dao.*;
+import com.utp.clinitech.dao.CitaDAO;
+import com.utp.clinitech.dao.MedicoDAO;
+import com.utp.clinitech.dao.PacienteDAO;
 import com.utp.clinitech.dto.ReporteAdministrativoResponse;
 import com.utp.clinitech.exception.ApiException;
 import com.utp.clinitech.model.Cita;
-import com.utp.clinitech.model.enums.*;
+import com.utp.clinitech.model.enums.EstadoCita;
+import com.utp.clinitech.model.enums.RolUsuario;
 
 @Service
 @Transactional(readOnly = true)
@@ -18,7 +27,7 @@ public class ReporteService {
   public ReporteService(CitaDAO citas, MedicoDAO medicos, PacienteDAO pacientes, CurrentUserService currentUser) { this.citas = citas; this.medicos = medicos; this.pacientes = pacientes; this.currentUser = currentUser; }
   public ReporteAdministrativoResponse resumen(LocalDate desde, LocalDate hasta) {
     currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN);
-    if (hasta.isBefore(desde) || java.time.temporal.ChronoUnit.DAYS.between(desde, hasta) > 366) throw new ApiException(HttpStatus.BAD_REQUEST, "El rango de fechas es inválido o excede un año");
+    if (hasta.isBefore(desde) || ChronoUnit.DAYS.between(desde, hasta) > 366) throw new ApiException(HttpStatus.BAD_REQUEST, "El rango de fechas es inválido o excede un año");
     OffsetDateTime inicio = desde.atStartOfDay(ZoneId.of("America/Lima")).toOffsetDateTime();
     OffsetDateTime fin = hasta.plusDays(1).atStartOfDay(ZoneId.of("America/Lima")).toOffsetDateTime();
     List<Cita> periodo = citas.findByFechaHoraBetween(inicio, fin);

@@ -11,14 +11,12 @@ import jakarta.validation.constraints.Size;
 public record LoginRequest(
     @NotBlank @Size(max = 50) String username,
     @NotBlank @Size(max = 128) String password,
-    @NotNull RolUsuario role
-) {
+    @NotNull RolUsuario role) {
   @JsonCreator
   public static LoginRequest of(
       @JsonProperty("username") String username,
       @JsonProperty("password") String password,
-      @JsonProperty("role") @JsonAlias("rol") String roleStr
-  ) {
+      @JsonProperty("role") @JsonAlias("rol") String roleStr) {
     RolUsuario parsedRol = parseRol(roleStr);
     return new LoginRequest(username, password, parsedRol);
   }
@@ -32,6 +30,7 @@ public record LoginRequest(
       case "PATIENT", "PACIENTE" -> RolUsuario.PACIENTE;
       case "DOCTOR", "MEDICO", "MÉDICO" -> RolUsuario.MEDICO;
       case "ADMIN", "ADMINISTRADOR" -> RolUsuario.ADMIN;
+      case "RECEPCIONISTA", "RECEPCION", "RECEPTIONIST" -> RolUsuario.RECEPCIONISTA;
       default -> throw new IllegalArgumentException("Rol no válido: " + roleStr);
     };
   }

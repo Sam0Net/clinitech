@@ -1,18 +1,18 @@
 package com.utp.clinitech.model;
 
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.LocalDate; // Manejar fechas sin zona horaria.
+import java.time.OffsetDateTime; // Manejar fechas con zona horaria.
+import jakarta.persistence.Column; // Anotación para definir columnas en la base de datos.
+import jakarta.persistence.Entity; // Anotación para definir una entidad JPA.
+import jakarta.persistence.GeneratedValue; // Anotación para definir la estrategia de generación de valores para la clave primaria.
+import jakarta.persistence.GenerationType; // Estrategias de generación de valores para la clave primaria.
+import jakarta.persistence.Id; // Anotación para definir la clave primaria de la entidad.
+import jakarta.persistence.PrePersist; // Anotación para definir un método que se ejecuta antes de persistir la entidad.
+import jakarta.persistence.Table; // Anotación para definir la tabla en la base de datos.
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-
-@Entity
-@Table(name = "pacientes")
+@Entity // Define la clase como una entidad JPA que se mapeará a una tabla en la base de
+        // datos.
+@Table(name = "pacientes") // Define el nombre de la tabla en la base de datos para esta entidad.
 public class Paciente {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,6 +44,7 @@ public class Paciente {
   }
 
   @PrePersist
+  // Método que se ejecuta antes de persistir la entidad en la base de datos.
   void prePersist() {
     creadoEn = OffsetDateTime.now();
   }

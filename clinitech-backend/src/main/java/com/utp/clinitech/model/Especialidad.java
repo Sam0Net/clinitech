@@ -1,6 +1,11 @@
 package com.utp.clinitech.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column; // agregar anotaciones de columna a los campos de la entidad.
+import jakarta.persistence.Entity; // marcar la clase como una entidad JPA.
+import jakarta.persistence.GeneratedValue; // especificar la estrategia de generación de valores para la clave primaria.
+import jakarta.persistence.GenerationType; // especificar el tipo de valor generado para la clave primaria.
+import jakarta.persistence.Id; // marcar el campo como la clave primaria de la entidad.
+import jakarta.persistence.Table; // especificar el nombre de la tabla en la base de datos para la entidad.
 
 @Entity
 @Table(name = "especialidades")

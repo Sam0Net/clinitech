@@ -52,10 +52,11 @@ export default function Login() {
               <label className="text-xs font-semibold uppercase tracking-wider text-[#3e4850]">
                 Tipo de Cuenta
               </label>
-              <div className="grid grid-cols-3 gap-1 bg-[#eaeef4] p-1 rounded-lg">
+              <div className="grid grid-cols-4 gap-1 bg-[#eaeef4] p-1 rounded-lg">
                 {[
                   { value: 'patient', label: 'Paciente' },
                   { value: 'doctor', label: 'Médico' },
+                  { value: 'recepcion', label: 'Recepción' },
                   { value: 'admin', label: 'Admin' }
                 ].map((r) => (
                   <label key={r.value} className="cursor-pointer text-center">

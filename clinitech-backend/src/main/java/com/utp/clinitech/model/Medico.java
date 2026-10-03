@@ -1,9 +1,17 @@
 package com.utp.clinitech.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column; // Anotación para mapear una columna de la base de datos.
+import jakarta.persistence.Entity; // Anotación para indicar que esta clase es una entidad de JPA.
+import jakarta.persistence.FetchType; // Enumeración para definir la estrategia de carga de datos (EAGER o LAZY).
+import jakarta.persistence.GeneratedValue; // Anotación para indicar que el valor del campo será generado automáticamente.
+import jakarta.persistence.GenerationType; // Enumeración para definir la estrategia de generación de valores (IDENTITY, SEQUENCE, TABLE, AUTO).
+import jakarta.persistence.Id; // Anotación para indicar que este campo es la clave primaria de la entidad.
+import jakarta.persistence.JoinColumn; // Anotación para definir la columna que se utilizará para la relación entre entidades.
+import jakarta.persistence.ManyToOne; // Anotación para indicar una relación de muchos a uno entre entidades.
+import jakarta.persistence.Table; // Anotación para mapear la entidad a una tabla específica de la base de datos.
 
-@Entity
-@Table(name = "medicos")
+@Entity // Indica que esta clase es una entidad de JPA y se mapeará a una tabla de la bd.
+@Table(name = "medicos") // Especifica el nombre de la tabla en la base de datos a la que se mapeará esta entidad.
 public class Medico {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
