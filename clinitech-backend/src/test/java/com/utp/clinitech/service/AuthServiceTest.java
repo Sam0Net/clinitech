@@ -3,7 +3,9 @@ package com.utp.clinitech.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +64,25 @@ class AuthServiceTest {
   }
 
   @Test
+  @DisplayName("Login exitoso sin especificar rol debe reconocer automáticamente el perfil")
+  void testLoginExitosoSinRolEspecificado() {
+    Usuario usuario = new Usuario("doctor1", "hashCifrado", RolUsuario.MEDICO, null, null);
+
+    when(usuarioDAO.findByUsernameIgnoreCase("doctor1")).thenReturn(Optional.of(usuario));
+    when(passwordEncoder.matches("123456", "hashCifrado")).thenReturn(true);
+    when(jwtService.generar(usuario)).thenReturn("mocked.jwt.token.doc");
+    when(jwtService.expirationMinutes()).thenReturn(60L);
+
+    LoginRequest request = new LoginRequest("doctor1", "123456", null);
+    LoginResponse response = authService.login(request);
+
+    assertNotNull(response);
+    assertEquals("mocked.jwt.token.doc", response.accessToken());
+    assertEquals("doctor1", response.username());
+    assertEquals(RolUsuario.MEDICO, response.role());
+  }
+
+  @Test
   @DisplayName("Login con contraseña errónea debe lanzar ApiException UNAUTHORIZED")
   void testLoginPasswordErroneo() {
     Usuario usuario = new Usuario("admin", "hashCifrado", RolUsuario.ADMIN, null, null);
@@ -87,5 +108,34 @@ class AuthServiceTest {
     assertEquals(RolUsuario.RECEPCIONISTA, LoginRequest.of("r", "123", "recepcionista").role());
     assertEquals(RolUsuario.RECEPCIONISTA, LoginRequest.of("r", "123", "recepcion").role());
     assertEquals(RolUsuario.RECEPCIONISTA, LoginRequest.of("r", "123", "receptionist").role());
+  }
+
+  @Test
+  @DisplayName("Eliminar cuenta propia de administrador debe fallar con BAD_REQUEST")
+  void testEliminarUsuarioPropiaCuentaDebeFallar() {
+    Usuario admin = new Usuario("admin", "hash", RolUsuario.ADMIN, null, null);
+    ReflectionTestUtils.setField(admin, "id", 1L);
+
+    when(currentUser.required()).thenReturn(admin);
+
+    ApiException ex = assertThrows(ApiException.class, () -> authService.eliminarUsuario(1L));
+    assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+  }
+
+  @Test
+  @DisplayName("Eliminar cuenta de otro usuario debe ejecutarse correctamente")
+  void testEliminarUsuarioExitoso() {
+    Usuario admin = new Usuario("admin", "hash", RolUsuario.ADMIN, null, null);
+    ReflectionTestUtils.setField(admin, "id", 1L);
+
+    Usuario otro = new Usuario("recepcion1", "hash", RolUsuario.RECEPCIONISTA, null, null);
+    ReflectionTestUtils.setField(otro, "id", 2L);
+
+    when(currentUser.required()).thenReturn(admin);
+    when(usuarioDAO.findById(2L)).thenReturn(Optional.of(otro));
+
+    authService.eliminarUsuario(2L);
+
+    verify(usuarioDAO).delete(otro);
   }
 }

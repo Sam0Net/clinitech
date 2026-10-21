@@ -11,4 +11,10 @@ public interface UsuarioDAO extends JpaRepository<Usuario, Long> {
 
   // Comprueba si ya existe un usuario registrado con el nombre de usuario indicado.
   boolean existsByUsernameIgnoreCase(String username);
+
+  // Lista todos los usuarios ordenados por ID de forma descendente.
+  java.util.List<Usuario> findAllByOrderByIdDesc();
+
+  // Lista los usuarios filtrados por rol.
+  java.util.List<Usuario> findByRolOrderByIdDesc(com.utp.clinitech.model.enums.RolUsuario rol);
 }

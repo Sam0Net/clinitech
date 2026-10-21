@@ -12,15 +12,15 @@ import jakarta.validation.constraints.Size; // Usado para delimitar la longitud 
 public record LoginRequest(
     @NotBlank @Size(max = 50) String username,
     @NotBlank @Size(max = 128) String password,
-    @NotNull RolUsuario role) {
+    RolUsuario role) {
 
-  // Fábrica JSON tolerante que acepta nombres de roles tanto en inglés como en español.
+  // Fábrica JSON tolerante que acepta nombres de roles tanto en inglés como en español (opcional).
   @JsonCreator
   public static LoginRequest of(
       @JsonProperty("username") String username,
       @JsonProperty("password") String password,
-      @JsonProperty("role") @JsonAlias("rol") String roleStr) {
-    RolUsuario parsedRol = parseRol(roleStr); // Normaliza y traduce el rol recibido.
+      @JsonProperty(value = "role", required = false) @JsonAlias("rol") String roleStr) {
+    RolUsuario parsedRol = parseRol(roleStr); // Normaliza y traduce el rol recibido (o null si no se envía).
     return new LoginRequest(username, password, parsedRol);
   }
 

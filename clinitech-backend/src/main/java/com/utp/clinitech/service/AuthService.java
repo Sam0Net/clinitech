@@ -1,5 +1,6 @@
 package com.utp.clinitech.service;
 
+import java.util.List; // Usado para devolver colecciones de usuarios en la administración.
 import org.springframework.http.HttpStatus; // Usado para asociar códigos de estado HTTP a las excepciones de autenticación.
 import org.springframework.security.crypto.password.PasswordEncoder; // Usado para validar y codificar contraseñas con hashing BCrypt.
 import org.springframework.stereotype.Service; // Usado para registrar la clase como servicio de negocio en Spring.
@@ -12,6 +13,7 @@ import com.utp.clinitech.dto.auth.LoginRequest; // Usado para recibir las creden
 import com.utp.clinitech.dto.auth.LoginResponse; // Usado para devolver el token generado y detalles de la sesión.
 import com.utp.clinitech.dto.auth.PerfilActualResponse; // Usado para devolver los datos de identidad del usuario en sesión.
 import com.utp.clinitech.dto.auth.RegistroPacienteRequest; // Usado para recibir la solicitud de registro público de pacientes.
+import com.utp.clinitech.dto.auth.UsuarioResponse; // Usado para devolver los datos de usuarios en la gestión administrativa.
 import com.utp.clinitech.exception.ApiException; // Usado para emitir errores de negocio controlados (ej. credenciales inválidas).
 import com.utp.clinitech.model.Medico; // Usado para asociar el usuario a un médico cuando corresponda.
 import com.utp.clinitech.model.Paciente; // Usado para asociar el usuario a un paciente en la base de datos.
@@ -44,9 +46,9 @@ public class AuthService {
   // Autentica credenciales de usuario, verifica rol solicitado y emite un token JWT.
   @Transactional
   public LoginResponse login(LoginRequest request) {
-    Usuario user = usuarios.findByUsernameIgnoreCase(request.username()).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas"));
-    if (!user.isActivo() || user.getRol() != request.role() || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-      throw new ApiException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
+    Usuario user = usuarios.findByUsernameIgnoreCase(request.username()).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "El usuario o la contraseña ingresados son incorrectos. Por favor, verifica tus datos e inténtalo nuevamente."));
+    if (!user.isActivo() || (request.role() != null && user.getRol() != request.role()) || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+      throw new ApiException(HttpStatus.UNAUTHORIZED, "El usuario o la contraseña ingresados son incorrectos. Por favor, verifica tus datos e inténtalo nuevamente.");
     }
     user.registrarAcceso(); // Actualiza la fecha del último ingreso.
     return new LoginResponse(jwtService.generar(user), "Bearer", jwtService.expirationMinutes(), user.getId(), user.getUsername(), user.getRol());
@@ -109,5 +111,57 @@ public class AuthService {
         usuarioGuardado.getUsername(),
         usuarioGuardado.getRol()
     );
+  }
+
+  // Lista los usuarios del sistema para la gestión administrativa (exclusivo para el Administrador).
+  public List<UsuarioResponse> listarUsuarios(String q, RolUsuario rol) {
+    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN);
+    List<Usuario> list = rol != null ? usuarios.findByRolOrderByIdDesc(rol) : usuarios.findAllByOrderByIdDesc();
+    if (q != null && !q.isBlank()) {
+      String query = q.trim().toLowerCase();
+      list = list.stream().filter(u -> {
+        boolean matchUsername = u.getUsername() != null && u.getUsername().toLowerCase().contains(query);
+        boolean matchMedico = u.getMedico() != null && (u.getMedico().getNombres() + " " + u.getMedico().getApellidos()).toLowerCase().contains(query);
+        boolean matchPaciente = u.getPaciente() != null && (u.getPaciente().getNombres() + " " + u.getPaciente().getApellidos()).toLowerCase().contains(query);
+        return matchUsername || matchMedico || matchPaciente;
+      }).toList();
+    }
+    return list.stream().map(UsuarioResponse::from).toList();
+  }
+
+  // Activa o desactiva una cuenta de usuario institucional.
+  @Transactional
+  public void cambiarEstadoUsuario(Long id, boolean activo) {
+    Usuario current = currentUser.required();
+    currentUser.requireRole(current, RolUsuario.ADMIN);
+    if (current.getId().equals(id) && !activo) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "No puedes desactivar tu propia cuenta de administrador activa.");
+    }
+    Usuario user = usuarios.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+    user.cambiarEstado(activo);
+  }
+
+  // Restablece la contraseña de acceso de una cuenta institucional.
+  @Transactional
+  public void resetearPassword(Long id, String nuevaPassword) {
+    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN);
+    Usuario user = usuarios.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+    user.cambiarPassword(passwordEncoder.encode(nuevaPassword));
+  }
+
+  // Elimina una cuenta de usuario del sistema y limpia el registro de paciente asociado si no posee citas (exclusivo para el Administrador).
+  @Transactional
+  public void eliminarUsuario(Long id) {
+    Usuario current = currentUser.required();
+    currentUser.requireRole(current, RolUsuario.ADMIN);
+    if (current.getId().equals(id)) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "No puedes eliminar tu propia cuenta de administrador activa.");
+    }
+    Usuario user = usuarios.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+    Paciente paciente = user.getPaciente();
+    usuarios.delete(user);
+    if (paciente != null && user.getRol() == RolUsuario.PACIENTE) {
+      pacienteService.eliminarSiNoTieneCitas(paciente.getId());
+    }
   }
 }

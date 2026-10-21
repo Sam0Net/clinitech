@@ -6,7 +6,8 @@ import org.springframework.http.HttpStatus; // Usado para asociar un código de 
 public class ApiException extends RuntimeException {
   private final HttpStatus status; // Código HTTP representativo del error (400, 401, 403, 404, 409, etc.).
 
-  // Constructor que inicializa el mensaje descriptivo y el estado HTTP de la excepción.
+  // Constructor que inicializa el mensaje descriptivo y el estado HTTP de la
+  // excepción.
   public ApiException(HttpStatus status, String message) {
     super(message);
     this.status = status;

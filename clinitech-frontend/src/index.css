@@ -1,15 +1,141 @@
 /* src/index.css */
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f6faff;
-  color: #171c20;
+:root {
+  /* Color Tokens - CliniTech Medical Palette */
+  --color-primary: #006591;
+  --color-primary-hover: #004d70;
+  --color-primary-light: #e0f2fe;
+  --color-primary-surface: #f0f9ff;
+  
+  --color-success: #059669;
+  --color-success-surface: #ecfdf5;
+  --color-warning: #d97706;
+  --color-warning-surface: #fffbeb;
+  --color-error: #dc2626;
+  --color-error-surface: #fef2f2;
+  
+  --color-bg-app: #f8fafc;
+  --color-surface-card: #ffffff;
+  --color-text-main: #0f172a;
+  --color-text-muted: #475569;
+  --color-border: #e2e8f0;
+  
+  /* Focus Indicator for WCAG 2.2 AA Compliance */
+  --focus-ring: 2px solid #006591;
+  --focus-offset: 2px;
 }
 
+[data-theme="dark"] {
+  --color-primary: #38bdf8;
+  --color-primary-hover: #7dd3fc;
+  --color-primary-light: #0c4a6e;
+  --color-primary-surface: #082f49;
+  
+  --color-bg-app: #0f172a;
+  --color-surface-card: #1e293b;
+  --color-text-main: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-border: #334155;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--color-bg-app);
+  color: var(--color-text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Material Symbols Icon Alignment and Rendering */
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Accessibility: Skip to Content Link (WCAG 2.4.1) */
+.skip-to-content {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.75rem 1.25rem;
+  background-color: #006591;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+  transition: top 0.2s ease;
+  text-decoration: none;
+}
+
+.skip-to-content:focus {
+  top: 1rem;
+  outline: 3px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+/* Interactive Focus Indicators (WCAG 2.4.7 Focus Visible) */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #006591;
+  outline-offset: 2px;
+}
+
+/* Los campos de formulario (inputs, textareas, selects) gestionan su foco con estilos suaves
+   y redondeados (border y ring), eliminando contornos rectangulares rígidos que solapan el diseño */
+input,
+textarea,
+select {
+  outline: none !important;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  box-shadow: none;
+}
+
+
+/* Accessibility: Respect Reduced Motion (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

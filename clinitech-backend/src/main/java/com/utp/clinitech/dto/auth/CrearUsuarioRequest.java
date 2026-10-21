@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size; // Usado para validar las longitudes
 // DTO para la creación administrativa de nuevas cuentas de usuario vinculadas a médicos o pacientes.
 public record CrearUsuarioRequest(
     @NotBlank @Size(min = 4, max = 50) String username,
-    @NotBlank @Size(min = 12, max = 128) String password,
+    @NotBlank @Size(min = 6, max = 128) String password,
     @NotNull RolUsuario rol, 
     Long pacienteId, 
     Long medicoId) {

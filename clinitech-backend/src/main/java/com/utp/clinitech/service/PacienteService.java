@@ -134,4 +134,15 @@ public class PacienteService {
   private Paciente buscar(Long id) {
     return pacientes.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Paciente no encontrado"));
   }
+
+  // Elimina físicamente un paciente y su nodo del Árbol Binario siempre que no posea citas registradas.
+  @Transactional
+  public void eliminarSiNoTieneCitas(Long id) {
+    if (citas.findByPacienteIdOrderByFechaHoraDesc(id).isEmpty()) {
+      pacientes.findById(id).ifPresent(p -> {
+        arbolPacientes.eliminar(p.getDni());
+        pacientes.delete(p);
+      });
+    }
+  }
 }

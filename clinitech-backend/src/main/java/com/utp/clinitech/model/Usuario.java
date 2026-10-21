@@ -87,11 +87,23 @@ public class Usuario {
     return activo;
   }
 
+  public OffsetDateTime getCreadoEn() {
+    return creadoEn;
+  }
+
+  public OffsetDateTime getUltimoAcceso() {
+    return ultimoAcceso;
+  }
+
   public void registrarAcceso() {
     ultimoAcceso = OffsetDateTime.now();
   }
 
   public void cambiarEstado(boolean activo) {
     this.activo = activo;
+  }
+
+  public void cambiarPassword(String passwordHash) {
+    this.passwordHash = passwordHash;
   }
 }
