@@ -1,74 +1,172 @@
 # ============================================
-# GLOBAL IGNORES
+# CLINITECH - GLOBAL GITIGNORE
 # ============================================
 
-# IDEs y editores
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
+# --------------------------------------------
+# 1. Variables de entorno y credenciales (CRÍTICO)
+# --------------------------------------------
+.env
+.env.*
+*.env
+*.env.*
+!.env.example
+!.env.template
 
-# Sistemas operativos
-.DS_Store
-Thumbs.db
+# Claves privadas, certificados y almacenes
+*.pem
+*.key
+*.pkcs12
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
 
-# ============================================
-# BACKEND (Spring Boot / Java)
-# ============================================
+# Credenciales y secretos en JSON / YAML / XML
+credentials.json
+client_secret*.json
+service-account*.json
+*secret*.json
+*secret*.yml
+*secret*.yaml
+*secrets.*
 
-# Compilados
+# --------------------------------------------
+# 2. Configuración local de Spring Boot (Backend)
+# --------------------------------------------
+**/application-local.properties
+**/application-local.yml
+**/application-local.yaml
+**/application-dev.properties
+**/application-dev.yml
+**/application-dev.yaml
+**/application-secret*.properties
+**/application-secret*.yml
+**/application-secret*.yaml
+**/application-private*.properties
+**/application-private*.yml
+**/application-private*.yaml
+
+# --------------------------------------------
+# 3. Backend (Java / Spring Boot / Maven / Gradle)
+# --------------------------------------------
+# Archivos compilados
 *.class
 *.jar
 *.war
 *.ear
 
 # Maven
-clinitech-backend/target/
-clinitech-backend/.mvn/
-clinitech-backend/mvnw
-clinitech-backend/mvnw.cmd
+target/
+**/target/
+.mvn/
+**/.mvn/
+mvnw
+mvnw.cmd
 
-# Gradle (si lo usas)
-clinitech-backend/.gradle/
-clinitech-backend/build/
-clinitech-backend/gradle/
-clinitech-backend/gradlew
-clinitech-backend/gradlew.bat
+# Gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+gradle/
+gradlew
+gradlew.bat
 
-# Logs
-clinitech-backend/*.log
-clinitech-backend/logs/
-
-# Configuración local de Spring Boot
-clinitech-backend/src/main/resources/application-local.properties
-clinitech-backend/src/main/resources/application-dev.properties
-
-# ============================================
-# FRONTEND (React / Node.js)
-# ============================================
-
+# --------------------------------------------
+# 4. Frontend (Node.js / React / Vite)
+# --------------------------------------------
 # Dependencias
-clinitech-frontend/node_modules/
+node_modules/
+**/node_modules/
 
-# Builds
-clinitech-frontend/dist/
-clinitech-frontend/build/
+# Builds de producción
+dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
 
-# Cache
-clinitech-frontend/.cache/
-clinitech-frontend/.vite/
+# Caché de bundlers y herramientas
+.cache/
+**/.cache/
+.vite/
+**/.vite/
+.npm/
 
-# Logs
-clinitech-frontend/npm-debug.log*
-clinitech-frontend/yarn-debug.log*
-clinitech-frontend/yarn-error.log*
+# Cobertura de pruebas (Test coverage)
+coverage/
+**/coverage/
+.nyc_output/
 
-# Variables de entorno (NUNCA subir esto)
-clinitech-frontend/.env
-clinitech-frontend/.env.local
-clinitech-frontend/.env.development
-clinitech-frontend/.env.production
+# --------------------------------------------
+# 5. Bases de datos locales y volcados
+# --------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql.gz
+*.sql.tar.gz
 
-# Coverage de tests
-clinitech-frontend/coverage/
+# --------------------------------------------
+# 6. Logs y depuración
+# --------------------------------------------
+logs/
+**/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --------------------------------------------
+# 7. IDEs y editores de código
+# --------------------------------------------
+# IntelliJ / WebStorm / Android Studio
+.idea/
+**/.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse / STS
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+nbdist/
+
+# Visual Studio Code
+.vscode/
+**/.vscode/
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# --------------------------------------------
+# 8. Archivos de sistema operativo y temporales
+# --------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+tmp/
+temp/
+*.tmp
