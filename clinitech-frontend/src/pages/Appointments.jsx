@@ -45,6 +45,21 @@ export default function Appointments() {
     historialMedico: '',
   });
 
+  // Filtros de listado para Ventanilla y búsqueda rápida
+  const [filtroTexto, setFiltroTexto] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('TODAS');
+  const [filtroFecha, setFiltroFecha] = useState('TODAS'); // 'TODAS' | 'HOY' | 'FUTURAS'
+
+  // Modal de Reprogramación de Citas
+  const [showReprogramarModal, setShowReprogramarModal] = useState(false);
+  const [citaParaReprogramar, setCitaParaReprogramar] = useState(null);
+  const [reprogFecha, setReprogFecha] = useState('');
+  const [reprogHora, setReprogHora] = useState('');
+  const [slotsReprog, setSlotsReprog] = useState([]);
+  const [loadingSlotsReprog, setLoadingSlotsReprog] = useState(false);
+  const [guardandoReprog, setGuardandoReprog] = useState(false);
+  const [reprogError, setReprogError] = useState('');
+
   const cargarDatos = async () => {
     try {
       setLoading(true);
@@ -169,6 +184,102 @@ export default function Appointments() {
       setError(err.message || 'Error al actualizar estado.');
     }
   };
+
+  const handleConfirmarLlegada = async (id, pacienteNombre) => {
+    try {
+      await api(`/api/citas/${id}/estado`, {
+        method: 'PATCH',
+        body: { estado: 'CONFIRMADA' },
+      });
+      setSuccess(`Check-in confirmado para ${pacienteNombre}. El paciente ingresó a la sala de espera.`);
+      cargarDatos();
+    } catch (err) {
+      setError(err.message || 'Error al confirmar llegada del paciente.');
+    }
+  };
+
+  const abrirModalReprogramar = (cita) => {
+    setCitaParaReprogramar(cita);
+    setReprogFecha('');
+    setReprogHora('');
+    setSlotsReprog([]);
+    setReprogError('');
+    setShowReprogramarModal(true);
+  };
+
+  const handleReprogFechaChange = async (fecha) => {
+    setReprogFecha(fecha);
+    setReprogHora('');
+    setReprogError('');
+    if (!citaParaReprogramar?.medicoId || !fecha) {
+      setSlotsReprog([]);
+      return;
+    }
+    setLoadingSlotsReprog(true);
+    try {
+      const slots = await api(`/api/citas/disponibilidad?medicoId=${citaParaReprogramar.medicoId}&fecha=${fecha}`);
+      setSlotsReprog(Array.isArray(slots) ? slots : []);
+    } catch {
+      setSlotsReprog([]);
+      setReprogError('No se pudieron consultar los horarios disponibles para esta fecha.');
+    } finally {
+      setLoadingSlotsReprog(false);
+    }
+  };
+
+  const handleConfirmarReprogramacion = async (e) => {
+    e.preventDefault();
+    if (!citaParaReprogramar) return;
+    if (!reprogFecha || !reprogHora) {
+      setReprogError('Debes seleccionar una nueva fecha y un horario disponible.');
+      return;
+    }
+    setGuardandoReprog(true);
+    setReprogError('');
+    try {
+      const nuevaFechaHora = new Date(reprogHora).toISOString();
+      await api(`/api/citas/${citaParaReprogramar.id}/reprogramar`, {
+        method: 'PATCH',
+        body: { fechaHora: nuevaFechaHora },
+      });
+      setSuccess(`Cita #${citaParaReprogramar.id} reprogramada con éxito.`);
+      setShowReprogramarModal(false);
+      setCitaParaReprogramar(null);
+      cargarDatos();
+    } catch (err) {
+      setReprogError(err.message || 'Error al reprogramar la cita. Verifica que el horario esté libre.');
+    } finally {
+      setGuardandoReprog(false);
+    }
+  };
+
+  const hoyStr = new Date().toISOString().split('T')[0];
+
+  const citasFiltradas = citas.filter((c) => {
+    if (filtroTexto.trim()) {
+      const q = filtroTexto.toLowerCase().trim();
+      const pacDni = pacientes.find((p) => p.id === c.pacienteId)?.dni || '';
+      const matchPac = (c.pacienteNombre || '').toLowerCase().includes(q);
+      const matchMed = (c.medicoNombre || '').toLowerCase().includes(q);
+      const matchDni = pacDni.toLowerCase().includes(q);
+      const matchId = String(c.id).includes(q);
+      if (!matchPac && !matchMed && !matchDni && !matchId) return false;
+    }
+
+    if (filtroEstado !== 'TODAS' && c.estado !== filtroEstado) {
+      return false;
+    }
+
+    if (filtroFecha === 'HOY') {
+      const fCita = (c.fechaHora || '').split('T')[0];
+      if (fCita !== hoyStr) return false;
+    } else if (filtroFecha === 'FUTURAS') {
+      const fCita = (c.fechaHora || '').split('T')[0];
+      if (fCita < hoyStr) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -503,19 +614,85 @@ export default function Appointments() {
         </form>
       </section>
 
-      {/* Listado Accesible de Citas Registradas */}
+      {/* Listado Accesible de Citas Registradas con Filtros de Ventanilla */}
       <section aria-labelledby="listado-citas-heading" className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 id="listado-citas-heading" className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#006591]">calendar_month</span>
-              {isPaciente ? 'Mis Citas Agendadas' : 'Todas las Citas Programadas'}
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">Control de asistencia y seguimiento de estados.</p>
+        <div className="p-6 border-b border-slate-200 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 id="listado-citas-heading" className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#006591]">calendar_month</span>
+                {isPaciente ? 'Mis Citas Agendadas' : 'Control de Citas y Atención en Ventanilla'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isPaciente
+                  ? 'Gestiona tus citas médicas programadas, solicita reprogramación de fecha o cancela si no podrás asistir.'
+                  : 'Recepción, confirmación de llegada (Check-in en sala), reprogramación y seguimiento de agenda en ventanilla.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 self-start">
+              <span className="text-xs font-bold text-slate-700 px-3 py-1 bg-slate-100 rounded-full">
+                {citasFiltradas.length} de {citas.length} citas
+              </span>
+            </div>
           </div>
-          <span className="text-xs font-bold text-slate-600 px-3 py-1 bg-slate-100 rounded-full">
-            {citas.length} citas
-          </span>
+
+          {/* Barra de Filtros Rápidos de Ventanilla */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+            {/* Buscador por DNI o Nombre */}
+            <div className="relative sm:col-span-2">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-[18px]" aria-hidden="true">
+                search
+              </span>
+              <input
+                type="text"
+                value={filtroTexto}
+                onChange={(e) => setFiltroTexto(e.target.value)}
+                placeholder={isPaciente ? "Buscar por médico o N° de cita..." : "Buscar por paciente, DNI, médico o N° cita..."}
+                className="w-full pl-10 pr-9 py-2 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/20 outline-none min-h-[38px]"
+              />
+              {filtroTexto && (
+                <button
+                  type="button"
+                  onClick={() => setFiltroTexto('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <span className="material-symbols-outlined text-[16px]">cancel</span>
+                </button>
+              )}
+            </div>
+
+            {/* Filtro por Estado */}
+            <div>
+              <select
+                aria-label="Filtrar por estado de cita"
+                value={filtroEstado}
+                onChange={(e) => setFiltroEstado(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white text-slate-800 font-medium focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/20 outline-none min-h-[38px]"
+              >
+                <option value="TODAS">Todos los Estados</option>
+                <option value="PENDIENTE">⏳ Pendientes</option>
+                <option value="CONFIRMADA">✅ Confirmadas (Check-in)</option>
+                <option value="REPROGRAMADA">🔄 Reprogramadas</option>
+                <option value="ATENDIDA">🩺 Atendidas</option>
+                <option value="CANCELADA">❌ Canceladas</option>
+              </select>
+            </div>
+
+            {/* Filtro por Fecha */}
+            <div>
+              <select
+                aria-label="Filtrar por fecha de atención"
+                value={filtroFecha}
+                onChange={(e) => setFiltroFecha(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white text-slate-800 font-medium focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/20 outline-none min-h-[38px]"
+              >
+                <option value="TODAS">Todas las Fechas</option>
+                <option value="HOY">📅 Citas de Hoy</option>
+                <option value="FUTURAS">📆 Citas Próximas</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -525,80 +702,327 @@ export default function Appointments() {
               <tr>
                 <th scope="col" className="py-3 px-4">Paciente</th>
                 <th scope="col" className="py-3 px-4">Médico</th>
-                <th scope="col" className="py-3 px-4">Horario</th>
+                <th scope="col" className="py-3 px-4">Fecha y Hora</th>
                 <th scope="col" className="py-3 px-4">Prioridad</th>
                 <th scope="col" className="py-3 px-4">Estado</th>
                 <th scope="col" className="py-3 px-4">Motivo</th>
-                <th scope="col" className="py-3 px-4 text-right">Acciones</th>
+                <th scope="col" className="py-3 px-4 text-right">Acciones de Ventanilla</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr>
                   <td colSpan="7" className="py-8 text-center text-xs text-slate-500">
-                    Cargando citas...
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="material-symbols-outlined animate-spin text-[#006591]">progress_activity</span>
+                      Cargando citas...
+                    </div>
                   </td>
                 </tr>
-              ) : citas.length === 0 ? (
+              ) : citasFiltradas.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="py-10 text-center text-xs text-slate-500">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <span className="material-symbols-outlined text-3xl text-slate-400">event_busy</span>
                       <p className="font-semibold text-slate-700">
-                        {isPaciente ? 'No tienes citas agendadas actualmente.' : 'No hay citas registradas en la base de datos.'}
+                        {citas.length === 0
+                          ? (isPaciente ? 'No tienes citas agendadas actualmente.' : 'No hay citas registradas en la base de datos.')
+                          : 'No se encontraron citas con los filtros seleccionados.'}
                       </p>
+                      {(filtroTexto || filtroEstado !== 'TODAS' || filtroFecha !== 'TODAS') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFiltroTexto('');
+                            setFiltroEstado('TODAS');
+                            setFiltroFecha('TODAS');
+                          }}
+                          className="text-xs font-bold text-[#006591] hover:underline cursor-pointer mt-1"
+                        >
+                          Restablecer todos los filtros
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ) : (
-                citas.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-slate-900">{c.pacienteNombre}</td>
-                    <td className="py-3.5 px-4 text-xs font-medium text-slate-700">{c.medicoNombre}</td>
-                    <td className="py-3.5 px-4 text-xs text-slate-600">
-                      {new Date(c.fechaHora).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                          c.prioridad === 'URGENTE' ? 'bg-rose-100 text-rose-800' : 'bg-sky-100 text-[#006591]'
-                        }`}
-                      >
-                        {c.prioridad}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                          c.estado === 'COMPLETADA' || c.estado === 'ATENDIDA'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : c.estado === 'CONFIRMADA'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {c.estado}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-600 max-w-[200px] truncate">{c.motivoConsulta}</td>
-                    <td className="py-3.5 px-4 text-right">
-                      {c.estado !== 'COMPLETADA' && c.estado !== 'ATENDIDA' && c.estado !== 'CANCELADA' && (
-                        <button
-                          onClick={() => cambiarEstado(c.id, 'CANCELADA')}
-                          aria-label={`Cancelar cita de ${c.pacienteNombre}`}
-                          className="px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors min-h-[36px]"
+                citasFiltradas.map((c) => {
+                  const pacDni = pacientes.find((p) => p.id === c.pacienteId)?.dni;
+                  const fechaObj = new Date(c.fechaHora);
+                  const esPasada = fechaObj < new Date();
+                  const puedeModificar = c.estado !== 'COMPLETADA' && c.estado !== 'ATENDIDA' && c.estado !== 'CANCELADA';
+
+                  return (
+                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                        <span className="block leading-tight">{c.pacienteNombre}</span>
+                        {pacDni && (
+                          <span className="text-[11px] text-slate-500 font-mono font-normal">DNI: {pacDni}</span>
+                        )}
+                        <span className="text-[10px] text-slate-400 font-mono block">Cita #{c.id}</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-medium text-slate-700">{c.medicoNombre}</td>
+                      <td className="py-3.5 px-4 text-xs font-semibold text-slate-800">
+                        <div className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-slate-400">schedule</span>
+                          <span>
+                            {fechaObj.toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                            c.prioridad === 'URGENTE' ? 'bg-rose-100 text-rose-800' : 'bg-sky-100 text-[#006591]'
+                          }`}
                         >
-                          Cancelar Cita
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                          {c.prioridad}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {c.estado === 'COMPLETADA' || c.estado === 'ATENDIDA' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                            Atendida
+                          </span>
+                        ) : c.estado === 'CONFIRMADA' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-[#006591] border border-sky-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Confirmada (En sala)
+                          </span>
+                        ) : c.estado === 'REPROGRAMADA' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                            <span className="material-symbols-outlined text-[13px]">update</span>
+                            Reprogramada
+                          </span>
+                        ) : c.estado === 'CANCELADA' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                            <span className="material-symbols-outlined text-[13px]">cancel</span>
+                            Cancelada
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            <span className="material-symbols-outlined text-[13px]">hourglass_empty</span>
+                            Pendiente
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-600 max-w-[200px] truncate" title={c.motivoConsulta}>
+                        {c.motivoConsulta}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                          {/* Botón de Check-in (Solo Recepcionista o Admin en citas pendientes o reprogramadas) */}
+                          {!isPaciente && (c.estado === 'PENDIENTE' || c.estado === 'REPROGRAMADA') && (
+                            <button
+                              type="button"
+                              onClick={() => handleConfirmarLlegada(c.id, c.pacienteNombre)}
+                              title="Marcar llegada del paciente en ventanilla e ingresarlo a sala de espera"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition-colors cursor-pointer min-h-[32px]"
+                            >
+                              <span className="material-symbols-outlined text-[15px] text-emerald-600">how_to_reg</span>
+                              <span>Check-in</span>
+                            </button>
+                          )}
+
+                          {/* Botón de Reprogramar (Paciente, Recepcionista, Admin) */}
+                          {puedeModificar && (
+                            <button
+                              type="button"
+                              onClick={() => abrirModalReprogramar(c)}
+                              title="Reprogramar fecha u horario de la cita"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-[#006591] bg-sky-50 hover:bg-sky-100 border border-sky-300 rounded-lg transition-colors cursor-pointer min-h-[32px]"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">edit_calendar</span>
+                              <span>Reprogramar</span>
+                            </button>
+                          )}
+
+                          {/* Botón de Cancelar Cita */}
+                          {puedeModificar && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`¿Estás seguro de cancelar la cita de ${c.pacienteNombre}?`)) {
+                                  cambiarEstado(c.id, 'CANCELADA');
+                                }
+                              }}
+                              title="Cancelar cita médica"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-lg transition-colors cursor-pointer min-h-[32px]"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">event_busy</span>
+                              <span>Cancelar</span>
+                            </button>
+                          )}
+
+                          {/* Etiqueta informativa cuando ya no es modificable */}
+                          {(c.estado === 'COMPLETADA' || c.estado === 'ATENDIDA') && (
+                            <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[15px]">task_alt</span>
+                              Atención finalizada
+                            </span>
+                          )}
+
+                          {c.estado === 'CANCELADA' && (
+                            <span className="text-[11px] text-slate-400 italic">
+                              Sin acciones
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </section>
+
+      {/* Modal Accesible de Reprogramación de Cita */}
+      {showReprogramarModal && citaParaReprogramar && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-reprogramar-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+        >
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg p-6 space-y-5">
+            {/* Header del Modal */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-200">
+              <div>
+                <h3 id="modal-reprogramar-title" className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#006591]">edit_calendar</span>
+                  Reprogramar Cita Médica
+                </h3>
+                <p className="text-xs text-slate-600 mt-1">
+                  Paciente: <span className="font-bold text-slate-800">{citaParaReprogramar.pacienteNombre}</span>
+                </p>
+                <p className="text-xs text-slate-500">
+                  Médico: <span className="font-medium text-slate-700">{citaParaReprogramar.medicoNombre}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowReprogramarModal(false);
+                  setCitaParaReprogramar(null);
+                  setReprogError('');
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors cursor-pointer"
+                aria-label="Cerrar modal de reprogramación"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Ficha del Horario Actual */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
+              <span className="text-slate-500 font-medium">Horario actual registrado:</span>
+              <span className="font-bold text-slate-800 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[15px] text-slate-400">schedule</span>
+                {new Date(citaParaReprogramar.fechaHora).toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short' })}
+              </span>
+            </div>
+
+            {reprogError && (
+              <div role="alert" className="p-3 bg-rose-50 border-l-4 border-rose-600 rounded-r-xl text-xs text-rose-800 font-medium">
+                {reprogError}
+              </div>
+            )}
+
+            <form noValidate onSubmit={handleConfirmarReprogramacion} className="space-y-4">
+              {/* Selección de Nueva Fecha */}
+              <div>
+                <label htmlFor="input-nueva-fecha" className="text-xs font-bold text-slate-700 block mb-1">
+                  Selecciona la Nueva Fecha <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  id="input-nueva-fecha"
+                  type="date"
+                  required
+                  min={hoyStr}
+                  value={reprogFecha}
+                  onChange={(e) => handleReprogFechaChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white text-slate-900 focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/20 outline-none"
+                />
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  Al elegir fecha, se consultarán en tiempo real los turnos libres del médico.
+                </span>
+              </div>
+
+              {/* Selección de Nuevo Horario Disponible */}
+              {reprogFecha && (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                    Horarios Disponibles para esta Fecha <span className="text-rose-600">*</span>
+                  </label>
+
+                  {loadingSlotsReprog ? (
+                    <div className="p-4 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                      <span className="material-symbols-outlined animate-spin text-[#006591] text-[18px]">progress_activity</span>
+                      Consultando disponibilidad del médico...
+                    </div>
+                  ) : slotsReprog.length === 0 ? (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+                      El médico no cuenta con turnos disponibles en la fecha seleccionada. Por favor selecciona otra fecha.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                      {slotsReprog.map((slot) => {
+                        const dateSlot = new Date(slot);
+                        const horaTexto = dateSlot.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+                        const esSeleccionado = reprogHora === slot;
+
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => {
+                              setReprogHora(slot);
+                              setReprogError('');
+                            }}
+                            className={`px-3 py-2 text-xs font-bold rounded-xl transition-all border cursor-pointer text-center ${
+                              esSeleccionado
+                                ? 'bg-[#006591] text-white border-[#006591] shadow-xs'
+                                : 'bg-white hover:bg-sky-50 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            {horaTexto}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Botones de Acción */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReprogramarModal(false);
+                    setCitaParaReprogramar(null);
+                    setReprogError('');
+                  }}
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all cursor-pointer min-h-[40px]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={!reprogHora || guardandoReprog}
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-[#006591] hover:bg-[#004d70] disabled:opacity-50 rounded-xl shadow-xs transition-all flex items-center gap-1.5 min-h-[40px] cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">check</span>
+                  {guardandoReprog ? 'Reprogramando...' : 'Confirmar Nueva Fecha'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
