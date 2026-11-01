@@ -52,7 +52,7 @@ public class ReporteService {
           (a, b) -> new ReporteAdministrativoResponse.MedicoSolicitado(a.medicoId(), a.nombre(), a.citas() + 1));
     }
     List<ReporteAdministrativoResponse.MedicoSolicitado> top = grouped.values().stream()
-        .sorted(Comparator.comparingLong(ReporteAdministrativoResponse.MedicoSolicitado::citas).reversed())
+        .sorted(Comparator.comparingLong((ReporteAdministrativoResponse.MedicoSolicitado m) -> m.citas()).reversed())
         .limit(5).toList(); // Extrae los 5 médicos más solicitados.
 
     return new ReporteAdministrativoResponse(

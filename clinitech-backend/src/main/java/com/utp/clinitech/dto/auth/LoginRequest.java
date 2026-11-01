@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonCreator; // Usado para indicar el m�
 import com.fasterxml.jackson.annotation.JsonProperty; // Usado para mapear explícitamente nombres de propiedades JSON con los parámetros del constructor.
 import com.utp.clinitech.model.enums.RolUsuario; // Usado para tipar el rol con el que el usuario intenta iniciar sesión.
 import jakarta.validation.constraints.NotBlank; // Usado para validar que las credenciales no estén vacías ni contengan solo espacios en blanco.
-import jakarta.validation.constraints.NotNull; // Usado para validar la obligatoriedad del rol solicitado.
 import jakarta.validation.constraints.Size; // Usado para delimitar la longitud máxima permitida para usuario y contraseña.
 
 // DTO que transporta las credenciales y el rol para la autenticación de usuarios.

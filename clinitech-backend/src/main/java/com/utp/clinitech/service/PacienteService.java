@@ -37,15 +37,15 @@ public class PacienteService {
   // Se ejecuta tras iniciar el servicio: carga todos los pacientes activos de la BD al Árbol Binario de Búsqueda.
   @PostConstruct
   public void inicializarArbol() {
-    pacientes.findAll().stream().filter(Paciente::isActivo).forEach(arbolPacientes::insertar); // Inserta cada paciente activo en el árbol.
+    pacientes.findAll().stream().filter(p -> p.isActivo()).forEach(arbolPacientes::insertar); // Inserta cada paciente activo en el árbol.
   }
 
   // Búsqueda rápida en memoria O(log n) por DNI usando el Árbol Binario de Búsqueda.
   public PacienteResponse buscarPorDniEnArbol(String dni) {
     currentUser.required(); // Requiere sesión autenticada.
     return arbolPacientes.buscarPorDni(dni) // Busca el nodo correspondiente al DNI en el ABB.
-        .filter(Paciente::isActivo) // Asegura que el paciente se encuentre en estado activo.
-        .map(ApiMapper::paciente) // Transforma la entidad al DTO de respuesta.
+        .filter(p -> p.isActivo()) // Asegura que el paciente se encuentre en estado activo.
+        .map(p -> ApiMapper.paciente(p)) // Transforma la entidad al DTO de respuesta.
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Paciente no encontrado en el índice del árbol"));
   }
 
@@ -53,8 +53,8 @@ public class PacienteService {
   public List<PacienteResponse> listarEnOrdenArbol() {
     currentUser.required(); // Requiere sesión autenticada.
     return arbolPacientes.enOrden().stream() // Ejecuta el recorrido in-order en tiempo O(n).
-        .filter(Paciente::isActivo)
-        .map(ApiMapper::paciente)
+        .filter(p -> p.isActivo())
+        .map(p -> ApiMapper.paciente(p))
         .toList();
   }
 
@@ -63,7 +63,7 @@ public class PacienteService {
     currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA); // Exclusivo para Admin o Recepcionista.
     Page<Paciente> result = pacientes.buscarActivos(q == null ? "" : q.trim(),
         PageRequest.of(page, Math.min(size, 100), Sort.by("apellidos").ascending()));
-    return PageResponse.from(result.map(ApiMapper::paciente)); // Retorna resultado encapsulado con metadatos de paginación.
+    return PageResponse.from(result.map(p -> ApiMapper.paciente(p))); // Retorna resultado encapsulado con metadatos de paginación.
   }
 
   // Obtiene la ficha de un paciente verificando estrictamente las políticas de privacidad y acceso.

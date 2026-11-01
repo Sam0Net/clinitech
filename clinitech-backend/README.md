@@ -4,7 +4,7 @@ API REST para el diseño de CliniTech: autenticación, agenda, historial clínic
 
 ## Ejecutar
 
-Necesitas Java 21 y PostgreSQL (o perfil de pruebas con H2). Define las variables antes de iniciar:
+Necesitas Java 25 (LTS) y PostgreSQL (o perfil de pruebas con H2). Define las variables antes de iniciar:
 
 ```bash
 export DB_URL='jdbc:postgresql://localhost:5432/clinitech'
@@ -36,4 +36,3 @@ Rutas públicas: `POST /api/auth/login` y `POST /api/auth/registro`. Las demás 
 | **Reportes** | `GET /api/reportes/administrativo?desde=YYYY-MM-DD&hasta=YYYY-MM-DD` |
 
 El login acepta roles flexibles tanto en español como en inglés (`"patient"`, `"doctor"`, `"admin"`, `"PACIENTE"`, `"MEDICO"`, `"ADMIN"`).
-

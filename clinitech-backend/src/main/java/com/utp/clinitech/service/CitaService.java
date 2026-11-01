@@ -92,7 +92,7 @@ public class CitaService {
     OffsetDateTime fin = fecha.plusDays(1).atStartOfDay(CLINIC_ZONE).toOffsetDateTime();
     List<OffsetDateTime> ocupados = citas.findByMedicoIdAndFechaHoraBetweenOrderByFechaHoraAsc(medicoId, inicio, fin)
         .stream()
-        .filter(c -> c.getEstado() != EstadoCita.CANCELADA).map(Cita::getFechaHora).toList(); 
+        .filter(c -> c.getEstado() != EstadoCita.CANCELADA).map(c -> c.getFechaHora()).toList(); 
 
     int[] rango = obtenerRangoSlots(medico.getHorarioAtencion()); 
     return IntStream.range(rango[0], rango[1])
@@ -203,7 +203,7 @@ public class CitaService {
 
   // Obtiene la entidad Paciente correspondiente al ID proporcionado, asegurándose de que esté activa y lanzando una excepción si no se encuentra.
   private Paciente pacientesEntidad(Long id) {
-    return pacientes.findById(id).filter(Paciente::isActivo)
+    return pacientes.findById(id).filter(p -> p.isActivo())
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Paciente no encontrado"));
   }
 

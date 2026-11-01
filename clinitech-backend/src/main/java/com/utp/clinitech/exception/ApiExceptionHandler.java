@@ -26,7 +26,7 @@ public class ApiExceptionHandler {
   @ExceptionHandler(MethodArgumentNotValidException.class)
   ResponseEntity<ApiError> validation(MethodArgumentNotValidException ex, WebRequest request) {
     Map<String, String> fields = ex.getBindingResult().getFieldErrors().stream()
-        .collect(java.util.stream.Collectors.toMap(FieldError::getField,
+        .collect(java.util.stream.Collectors.toMap((FieldError fe) -> fe.getField(),
             e -> e.getDefaultMessage() == null ? "Valor inválido" : e.getDefaultMessage(), (a, b) -> a));
     return response(HttpStatus.BAD_REQUEST, "La solicitud contiene campos inválidos", fields, request);
   }

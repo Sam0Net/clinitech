@@ -40,7 +40,7 @@ public class MedicoService {
     currentUser.required();
     return PageResponse.from(medicos
         .buscarActivos(q == null ? "" : q.trim(), PageRequest.of(page, Math.min(size, 100), Sort.by("apellidos")))
-        .map(ApiMapper::medico));
+        .map(m -> ApiMapper.medico(m)));
   }
 
   // Registra un nuevo médico y lo vincula con su especialidad correspondiente.
@@ -74,7 +74,7 @@ public class MedicoService {
 
   // Recupera la entidad Medico activa por ID o lanza 404 NOT_FOUND.
   public Medico entidad(Long id) {
-    return medicos.findById(id).filter(Medico::isActivo)
+    return medicos.findById(id).filter(m -> m.isActivo())
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Médico no encontrado"));
   }
 }

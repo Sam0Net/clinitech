@@ -20,7 +20,7 @@ public class CorsConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(",")).map(String::trim).toList()); // Permite dominios específicos.
+    configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(",")).map(origin -> origin.trim()).toList()); // Permite dominios específicos.
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")); // Métodos HTTP habilitados.
     configuration.setAllowedHeaders(List.of("Authorization", "Content-Type")); // Cabeceras permitidas en las peticiones.
     configuration.setExposedHeaders(List.of("Location")); // Cabeceras visibles en las respuestas del navegador.

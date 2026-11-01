@@ -58,7 +58,7 @@ public class EspecialidadService {
     entidad(id); // Verifica que la especialidad con el ID proporcionado exista y esté activa.
     Set<Long> idsRelacionadas = grafo.relacionadasCon(id); // Obtiene los IDs de las especialidades relacionadas.
     return especialidades.findAllById(idsRelacionadas).stream() // Convierte en DTOs y filtra solo las activas.
-        .filter(Especialidad::isActivo)
+        .filter(e -> e.isActivo())
         .map(ApiMapper::especialidad)
         .toList();
   }
@@ -87,7 +87,7 @@ public class EspecialidadService {
   }
 
   public Especialidad entidad(Long id) { // Obtiene la entidad por ID. 
-    return especialidades.findById(id).filter(Especialidad::isActivo) // Filtra solo las especialidades activas.
+    return especialidades.findById(id).filter(e -> e.isActivo()) // Filtra solo las especialidades activas.
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Especialidad no encontrada")); // Lanza una excepción si no se encuentra la especialidad.
   }
 }
