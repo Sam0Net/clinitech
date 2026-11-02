@@ -1,0 +1,42 @@
+{
+  "properties": [
+    {
+      "name": "spring.flyway.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Habilita o deshabilita las migraciones de base de datos con Flyway.",
+      "defaultValue": true
+    },
+    {
+      "name": "app.jwt.secret",
+      "type": "java.lang.String",
+      "description": "Clave secreta en Base64 utilizada para firmar y verificar tokens JWT."
+    },
+    {
+      "name": "app.jwt.expiration-minutes",
+      "type": "java.lang.Long",
+      "description": "Tiempo de expiración en minutos de los tokens JWT emitidos.",
+      "defaultValue": 60
+    },
+    {
+      "name": "app.cors.allowed-origins",
+      "type": "java.lang.String",
+      "description": "Orígenes cliente permitidos para peticiones CORS separados por comas."
+    },
+    {
+      "name": "app.bootstrap.admin.username",
+      "type": "java.lang.String",
+      "description": "Nombre de usuario para el administrador inicial creado durante el arranque."
+    },
+    {
+      "name": "app.bootstrap.admin.password",
+      "type": "java.lang.String",
+      "description": "Contraseña para el administrador inicial creado durante el arranque."
+    },
+    {
+      "name": "app.security.dev-bypass",
+      "type": "java.lang.Boolean",
+      "description": "Habilita o deshabilita el bypass de seguridad en entorno de desarrollo.",
+      "defaultValue": false
+    }
+  ]
+}
