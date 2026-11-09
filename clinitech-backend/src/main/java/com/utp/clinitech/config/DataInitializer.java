@@ -21,16 +21,9 @@ import com.utp.clinitech.model.enums.RolUsuario;
 public class DataInitializer implements ApplicationRunner {
 
   private final EspecialidadDAO especialidades;
-  private final UsuarioDAO usuarios;
-  private final PasswordEncoder passwordEncoder;
 
-  public DataInitializer(
-      EspecialidadDAO especialidades,
-      UsuarioDAO usuarios,
-      PasswordEncoder passwordEncoder) {
+  public DataInitializer(EspecialidadDAO especialidades) {
     this.especialidades = especialidades;
-    this.usuarios = usuarios;
-    this.passwordEncoder = passwordEncoder;
   }
 
   @Override
@@ -43,12 +36,6 @@ public class DataInitializer implements ApplicationRunner {
       especialidades.save(new Especialidad("Pediatría", "Atención médica integral infantil"));
       especialidades.save(new Especialidad("Dermatología", "Cuidado y tratamiento de la piel"));
       especialidades.save(new Especialidad("Traumatología", "Lesiones óseas y del sistema locomotor"));
-    }
-
-    // 2. Usuario administrador para el acceso inicial al sistema
-    String hashClave = passwordEncoder.encode("CliniTech2026!");
-    if (!usuarios.existsByUsernameIgnoreCase("admin")) {
-      usuarios.save(new Usuario("admin", hashClave, RolUsuario.ADMIN, null, null));
     }
   }
 }

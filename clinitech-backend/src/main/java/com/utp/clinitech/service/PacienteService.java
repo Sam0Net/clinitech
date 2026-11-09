@@ -40,9 +40,9 @@ public class PacienteService {
     pacientes.findAll().stream().filter(p -> p.isActivo()).forEach(arbolPacientes::insertar); // Inserta cada paciente activo en el árbol.
   }
 
-  // Búsqueda rápida en memoria O(log n) por DNI usando el Árbol Binario de Búsqueda.
+  // Búsqueda rápida en memoria O(log n) por DNI usando el Árbol Binario de Búsqueda (restringido a gestión clínica).
   public PacienteResponse buscarPorDniEnArbol(String dni) {
-    currentUser.required(); // Requiere sesión autenticada.
+    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA); // Exclusivo para Admin o Recepcionista.
     return arbolPacientes.buscarPorDni(dni) // Busca el nodo correspondiente al DNI en el ABB.
         .filter(p -> p.isActivo()) // Asegura que el paciente se encuentre en estado activo.
         .map(p -> ApiMapper.paciente(p)) // Transforma la entidad al DTO de respuesta.
@@ -51,7 +51,7 @@ public class PacienteService {
 
   // Obtiene todos los pacientes ordenados ascendentemente mediante el recorrido In-Orden (Izquierda - Raíz - Derecha).
   public List<PacienteResponse> listarEnOrdenArbol() {
-    currentUser.required(); // Requiere sesión autenticada.
+    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA); // Exclusivo para Admin o Recepcionista.
     return arbolPacientes.enOrden().stream() // Ejecuta el recorrido in-order en tiempo O(n).
         .filter(p -> p.isActivo())
         .map(p -> ApiMapper.paciente(p))
@@ -103,9 +103,26 @@ public class PacienteService {
     if (!own && actor.getRol() != RolUsuario.ADMIN && actor.getRol() != RolUsuario.RECEPCIONISTA)
       throw new ApiException(HttpStatus.FORBIDDEN, "No puedes modificar este paciente");
     Paciente paciente = buscar(id);
-    paciente.actualizar(request.dni(), request.nombres().trim(), request.apellidos().trim(), request.fechaNacimiento(),
-        request.telefono(), request.correo().trim().toLowerCase(), request.direccion(), request.alergias(),
-        request.historialMedico());
+
+    // Valida que el nuevo DNI no esté en uso por otro paciente
+    String nuevoDni = request.dni().trim();
+    if (!paciente.getDni().equalsIgnoreCase(nuevoDni) && pacientes.findByDni(nuevoDni).isPresent()) {
+      throw new ApiException(HttpStatus.CONFLICT, "El DNI ya está registrado por otro paciente");
+    }
+
+    // Un paciente no puede auto-modificar su historial médico oficial; solo ADMIN o RECEPCIONISTA/MÉDICO
+    String historialMedico = (actor.getRol() == RolUsuario.PACIENTE)
+        ? paciente.getHistorialMedico()
+        : request.historialMedico();
+
+    // Si cambió el DNI, actualiza la clave en el Árbol Binario de búsqueda
+    if (!paciente.getDni().equalsIgnoreCase(nuevoDni)) {
+      arbolPacientes.eliminar(paciente.getDni());
+    }
+
+    paciente.actualizar(nuevoDni, request.nombres().trim(), request.apellidos().trim(), request.fechaNacimiento(),
+        request.telefono().trim(), request.correo().trim().toLowerCase(), request.direccion(), request.alergias(),
+        historialMedico);
     arbolPacientes.insertar(paciente); // Actualiza la referencia del paciente en el árbol.
     return ApiMapper.paciente(paciente);
   }

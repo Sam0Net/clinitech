@@ -1,6 +1,8 @@
 package com.utp.clinitech.util;
 
-import java.util.HashMap; // Implementar lista de adyacencia.
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap; // Implementar estructuras auxiliares en BFS.
 import java.util.Map; // Implementar lista de adyacencia.
 import java.util.Set; // Evitar especialidades duplicadas en la lista de adyacencia.
 import java.util.HashSet; // Evitar especialidades duplicadas en la lista de adyacencia.
@@ -8,12 +10,13 @@ import java.util.LinkedList; // Para reconstruir la ruta más corta desde el des
 import java.util.List;
 import java.util.Queue; // Cola FIFO para exploración de niveles en BFS.
 import java.util.ArrayDeque; // Cola FIFO para exploración de niveles en BFS.
+import java.util.concurrent.ConcurrentHashMap; // Para asegurar acceso thread-safe en entornos concurrentes.
 
 public class GrafoEspecialidades {
-  private final Map<Long, Set<Long>> adyacencias = new HashMap<>(); // Declarar lista de adyacencia.
+  private final Map<Long, Set<Long>> adyacencias = new ConcurrentHashMap<>(); // Declarar lista de adyacencia concurrente.
 
   public void agregarEspecialidad(Long id) {
-    adyacencias.computeIfAbsent(id, ignored -> new HashSet<>()); // Crea un nuevo vértice sin conexiones iniciales.
+    adyacencias.computeIfAbsent(id, ignored -> Collections.synchronizedSet(new HashSet<>())); // Crea un nuevo vértice thread-safe.
   }
 
   public void relacionar(Long primeraId, Long segundaId) {
@@ -26,8 +29,13 @@ public class GrafoEspecialidades {
   }
 
   public Set<Long> relacionadasCon(Long id) {
-    // getOrDefault evita excepciones | Set.copyof devuelve una copia inmutable.
-    return Set.copyOf(adyacencias.getOrDefault(id, Set.of()));
+    Set<Long> vecinos = adyacencias.get(id);
+    if (vecinos == null) {
+      return Set.of();
+    }
+    synchronized (vecinos) {
+      return Set.copyOf(vecinos);
+    }
   }
 
   // Algoritmo Principal (BFS).
@@ -45,7 +53,13 @@ public class GrafoEspecialidades {
       Long actual = pendientes.remove(); // Extrae el vértice actual de la cola de pendientes.
       if (actual.equals(destino)) // Si el vértice actual es el destino, se ha encontrado la ruta más corta y se
         break; // rompe el bucle.
-      for (Long vecino : adyacencias.get(actual)) // Si no es el destino, itera sobre todos sus vecinos.
+      Set<Long> vecinos = adyacencias.get(actual);
+      if (vecinos == null) continue;
+      List<Long> snapshot;
+      synchronized (vecinos) {
+        snapshot = new ArrayList<>(vecinos);
+      }
+      for (Long vecino : snapshot) // Si no es el destino, itera sobre la copia sincronizada de sus vecinos.
         if (visitadas.add(vecino)) { // Si el vecino no ha sido visitado, se marca como visitado y se agrega a la
                                      // cola de pendientes.
           anterior.put(vecino, actual); // Al ser nuevo, se registra su origen y lo encola en pendientes.

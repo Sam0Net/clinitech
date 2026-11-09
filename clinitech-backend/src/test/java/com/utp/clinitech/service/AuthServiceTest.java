@@ -106,6 +106,18 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Login con usuario inexistente debe simular cálculo BCrypt para mitigar Timing Attack y lanzar UNAUTHORIZED")
+    void testLoginUsuarioInexistenteMitigacionTimingAttack() {
+        when(usuarioDAO.findByUsernameIgnoreCase("fantasma")).thenReturn(Optional.empty());
+
+        LoginRequest request = LoginRequest.of("fantasma", "password123", "admin");
+
+        ApiException ex = assertThrows(ApiException.class, () -> authService.login(request));
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatus());
+        verify(passwordEncoder).matches(org.mockito.ArgumentMatchers.eq("password123"), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
     @DisplayName("LoginRequest debe mapear correctamente roles en inglés y español")
     void testMapeoRolesFlexibles() {
         assertEquals(RolUsuario.PACIENTE, LoginRequest.of("p", "123", "patient").role());

@@ -57,11 +57,19 @@ export default function Dashboard() {
     cargarDatosGenerales();
   }, []);
 
+  const getFechaLocalISO = (fechaInput) => {
+    const d = fechaInput ? new Date(fechaInput) : new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const cargarColaTriaje = async (idMedico) => {
     if (!idMedico) return;
     setLoadingCola(true);
     try {
-      const hoy = new Date().toISOString().split('T')[0];
+      const hoy = getFechaLocalISO();
       const data = await api(`/api/citas/cola-atencion?medicoId=${idMedico}&fecha=${hoy}`);
       setColaTriaje(Array.isArray(data) ? data : []);
     } catch {
@@ -89,7 +97,7 @@ export default function Dashboard() {
     setSuccess('');
     setLlamando(true);
     try {
-      const hoy = new Date().toISOString().split('T')[0];
+      const hoy = getFechaLocalISO();
       const siguiente = await api(`/api/citas/cola-atencion/siguiente?medicoId=${medId}&fecha=${hoy}`);
       setCitaActiva(siguiente);
       setSuccess(`Llamando al paciente: ${siguiente.pacienteNombre} (Prioridad: ${siguiente.prioridad})`);
@@ -132,9 +140,24 @@ export default function Dashboard() {
     }
   };
 
-  const total = citas.length;
-  const urgentes = citas.filter((c) => c.prioridad === 'URGENTE').length;
-  const completadas = citas.filter((c) => c.estado === 'COMPLETADA' || c.estado === 'ATENDIDA').length;
+  const hoyStr = getFechaLocalISO();
+  // Filtrar citas correspondientes a la jornada de hoy
+  const citasHoy = citas.filter((c) => c.fechaHora && getFechaLocalISO(c.fechaHora) === hoyStr);
+
+  // Citas programadas/pendientes para hoy (aún no atendidas ni canceladas)
+  const programadasHoy = citasHoy.filter(
+    (c) => c.estado === 'PENDIENTE' || c.estado === 'CONFIRMADA' || c.estado === 'REPROGRAMADA'
+  ).length;
+
+  // Casos urgentes del día que aún requieren atención inmediata
+  const urgentesHoy = citasHoy.filter(
+    (c) => c.prioridad === 'URGENTE' && (c.estado === 'PENDIENTE' || c.estado === 'CONFIRMADA' || c.estado === 'REPROGRAMADA')
+  ).length;
+
+  // Atenciones completadas en la jornada de hoy
+  const atencionesHoy = citasHoy.filter(
+    (c) => c.estado === 'COMPLETADA' || c.estado === 'ATENDIDA'
+  ).length;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -192,7 +215,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Tarjetas de Métricas Generales (UI / UX Architect) */}
+      {/* Tarjetas de Métricas del Día (Tiempo Real y Triaje) */}
       <section aria-label="Métricas del día" className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
@@ -201,8 +224,8 @@ export default function Dashboard() {
               <span className="material-symbols-outlined text-[24px]">calendar_month</span>
             </div>
           </div>
-          <p className="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3">{loading ? '...' : total}</p>
-          <p className="text-xs text-slate-500 mt-1">Registradas en el centro clínico</p>
+          <p className="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3">{loading ? '...' : programadasHoy}</p>
+          <p className="text-xs text-slate-500 mt-1">Pendientes de atención hoy</p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs hover:shadow-md transition-shadow">
@@ -212,8 +235,8 @@ export default function Dashboard() {
               <span className="material-symbols-outlined text-[24px]">emergency</span>
             </div>
           </div>
-          <p className="text-3xl sm:text-4xl font-extrabold text-rose-700 mt-3">{loading ? '...' : urgentes}</p>
-          <p className="text-xs text-rose-600 font-medium mt-1">Atención inmediata requerida</p>
+          <p className="text-3xl sm:text-4xl font-extrabold text-rose-700 mt-3">{loading ? '...' : urgentesHoy}</p>
+          <p className="text-xs text-rose-600 font-medium mt-1">Atención inmediata requerida hoy</p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs hover:shadow-md transition-shadow">
@@ -223,8 +246,8 @@ export default function Dashboard() {
               <span className="material-symbols-outlined text-[24px]">verified</span>
             </div>
           </div>
-          <p className="text-3xl sm:text-4xl font-extrabold text-emerald-700 mt-3">{loading ? '...' : completadas}</p>
-          <p className="text-xs text-emerald-600 font-medium mt-1">Consultas clínicas completadas</p>
+          <p className="text-3xl sm:text-4xl font-extrabold text-emerald-700 mt-3">{loading ? '...' : atencionesHoy}</p>
+          <p className="text-xs text-emerald-600 font-medium mt-1">Consultas clínicas completadas hoy</p>
         </div>
       </section>
 

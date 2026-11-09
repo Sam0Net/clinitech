@@ -3,28 +3,44 @@ package com.utp.clinitech.util;
 import java.util.ArrayList; // Usado para almacenar los resultados de los recorridos del árbol.
 import java.util.List; // Usado para devolver listas de pacientes en los métodos de recorrido.
 import java.util.Optional; // Usado para manejar la búsqueda de pacientes de manera segura, evitando nulls.
+import java.util.concurrent.locks.ReentrantReadWriteLock; // Usado para garantizar sincronización y concurrencia segura entre múltiples hilos.
 import com.utp.clinitech.model.Paciente; // Usado para representar a los pacientes en el árbol de búsqueda.
 
 /**
  * Árbol Binario de Búsqueda (ABB) indexado por DNI para optimizar la búsqueda
  * de pacientes en memoria.
  * Implementa operaciones de inserción, búsqueda, eliminación y recorridos
- * (in-order, pre-order, post-order).
+ * (in-order, pre-order, post-order) con soporte para concurrencia segura (Thread-Safe).
  */
 public class ArbolBusquedaPacientes {
 
+  private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private Nodo raiz; // Nodo raíz del árbol, que representa el punto de entrada para todas las operaciones.
 
   public void insertar(Paciente paciente) {
     if (paciente == null || paciente.getDni() == null) { // Validación para asegurar que el paciente y su DNI no sean nulos antes de la inserción.
       throw new IllegalArgumentException("El paciente y su DNI no pueden ser nulos");
     }
-    raiz = insertar(raiz, paciente); // Llama al método recursivo privado para insertar el paciente en la posición correcta del árbol, manteniendo la propiedad de búsqueda binaria.
+    rwLock.writeLock().lock();
+    try {
+      raiz = insertar(raiz, paciente); // Llama al método recursivo privado para insertar el paciente en la posición correcta del árbol.
+    } finally {
+      rwLock.writeLock().unlock();
+    }
   }
 
-  public Optional<Paciente> buscarPorDni(String dni) { // Método que permite buscar un paciente por su DNI, devolviendo un Optional para manejar la posibilidad de que el paciente no exista en el árbol.
+  public Optional<Paciente> buscarPorDni(String dni) { // Método que permite buscar un paciente por su DNI.
+    rwLock.readLock().lock();
+    try {
+      return buscarPorDniInterno(dni);
+    } finally {
+      rwLock.readLock().unlock();
+    }
+  }
+
+  private Optional<Paciente> buscarPorDniInterno(String dni) {
     if (dni == null) {
-      return Optional.empty(); // Retorna un Optional vacío si el DNI proporcionado es nulo, evitando búsquedas inválidas.
+      return Optional.empty(); // Retorna un Optional vacío si el DNI proporcionado es nulo.
     }
     Nodo actual = raiz; // Comienza la búsqueda desde la raíz del árbol.
     while (actual != null) { // Itera mientras haya nodos por explorar en el árbol.
@@ -32,47 +48,85 @@ public class ArbolBusquedaPacientes {
       if (comparacion == 0) { // Si los DNIs coinciden, se ha encontrado el paciente.
         return Optional.of(actual.paciente); // Retorna un Optional que contiene el paciente encontrado.
       }
-      actual = comparacion < 0 ? actual.izquierdo : actual.derecho; // Si el DNI buscado es menor, se mueve al subárbol izquierdo; si es mayor, al subárbol derecho.
+      actual = comparacion < 0 ? actual.izquierdo : actual.derecho; // Navega al subárbol izquierdo o derecho.
     }
-    return Optional.empty(); // Retorna un Optional vacío si no se encuentra ningún paciente con el DNI proporcionado.
+    return Optional.empty();
   }
 
-  public boolean eliminar(String dni) { // Método que permite eliminar un paciente del árbol por su DNI, devolviendo un booleano que indica si la eliminación fue exitosa.
-    if (dni == null || !buscarPorDni(dni).isPresent()) { // Verifica si el DNI es nulo o si el paciente no existe en el árbol antes de intentar eliminarlo.
+  public boolean eliminar(String dni) { // Método que permite eliminar un paciente del árbol por su DNI de forma segura.
+    if (dni == null) {
       return false;
     }
-    raiz = eliminar(raiz, dni); // Llama al método recursivo privado para eliminar el paciente del árbol.
-    return true;
+    rwLock.writeLock().lock();
+    try {
+      if (buscarPorDniInterno(dni).isEmpty()) {
+        return false;
+      }
+      raiz = eliminar(raiz, dni);
+      return true;
+    } finally {
+      rwLock.writeLock().unlock();
+    }
   }
 
-  public List<Paciente> enOrden() { // Método que devuelve una lista de pacientes en orden ascendente según su DNI, utilizando un recorrido in-order del árbol.
-    List<Paciente> result = new ArrayList<>(); // Lista temporal para almacenar los pacientes durante el recorrido in-order.
-    enOrden(raiz, result); // Llama al método recursivo privado para realizar el recorrido in-order y llenar la lista de resultados.
-    return List.copyOf(result); // Retorna una copia inmutable de la lista de resultados, asegurando que no se pueda modificar desde fuera de la clase.
+  public List<Paciente> enOrden() { // Método que devuelve una lista de pacientes en orden ascendente según su DNI.
+    rwLock.readLock().lock();
+    try {
+      List<Paciente> result = new ArrayList<>(); // Lista temporal para almacenar los pacientes durante el recorrido in-order.
+      enOrden(raiz, result); // Llama al método recursivo privado para realizar el recorrido in-order.
+      return List.copyOf(result); // Retorna una copia inmutable.
+    } finally {
+      rwLock.readLock().unlock();
+    }
   }
 
-  public List<Paciente> preOrden() { // Método que devuelve una lista de pacientes en el orden en que se visitan los nodos, utilizando un recorrido pre-order del árbol.
-    List<Paciente> result = new ArrayList<>(); // Lista temporal para almacenar los pacientes durante el recorrido pre-order.
-    preOrden(raiz, result); // Llama al método recursivo privado para realizar el recorrido pre-order y llenar la lista de resultados.
-    return List.copyOf(result); // Retorna una copia inmutable de la lista de resultados, asegurando que no se pueda modificar desde fuera de la clase.
+  public List<Paciente> preOrden() { // Método que devuelve una lista de pacientes en pre-orden.
+    rwLock.readLock().lock();
+    try {
+      List<Paciente> result = new ArrayList<>();
+      preOrden(raiz, result);
+      return List.copyOf(result);
+    } finally {
+      rwLock.readLock().unlock();
+    }
   }
 
-  public List<Paciente> postOrden() { // Método que devuelve una lista de pacientes en el orden en que se visitan los nodos, utilizando un recorrido post-order del árbol.
-    List<Paciente> result = new ArrayList<>(); // Lista temporal para almacenar los pacientes durante el recorrido post-order.
-    postOrden(raiz, result); // Llama al método recursivo privado para realizar el recorrido post-order y llenar la lista de resultados.
-    return List.copyOf(result); // Retorna una copia inmutable de la lista de resultados, asegurando que no se pueda modificar desde fuera de la clase.
+  public List<Paciente> postOrden() { // Método que devuelve una lista de pacientes en post-orden.
+    rwLock.readLock().lock();
+    try {
+      List<Paciente> result = new ArrayList<>();
+      postOrden(raiz, result);
+      return List.copyOf(result);
+    } finally {
+      rwLock.readLock().unlock();
+    }
   }
 
-  public int tamanio() { // Método que devuelve el número total de nodos (pacientes) en el árbol, utilizando un conteo recursivo.
-    return contarNodos(raiz);
+  public int tamanio() { // Método que devuelve el número total de nodos.
+    rwLock.readLock().lock();
+    try {
+      return contarNodos(raiz);
+    } finally {
+      rwLock.readLock().unlock();
+    }
   }
 
-  public int altura() { // Método que devuelve la altura del árbol, definida como el número de niveles desde la raíz hasta la hoja más profunda.
-    return calcularAltura(raiz);
+  public int altura() { // Método que devuelve la altura del árbol.
+    rwLock.readLock().lock();
+    try {
+      return calcularAltura(raiz);
+    } finally {
+      rwLock.readLock().unlock();
+    }
   }
 
-  public void limpiar() { // Método que elimina todos los nodos del árbol, restableciendo la estructura a un estado vacío.
-    raiz = null;
+  public void limpiar() { // Método que elimina todos los nodos del árbol de forma thread-safe.
+    rwLock.writeLock().lock();
+    try {
+      raiz = null;
+    } finally {
+      rwLock.writeLock().unlock();
+    }
   }
 
   private Nodo insertar(Nodo nodo, Paciente paciente) { // Método recursivo privado que inserta un paciente en el árbol, manteniendo la propiedad de búsqueda binaria.

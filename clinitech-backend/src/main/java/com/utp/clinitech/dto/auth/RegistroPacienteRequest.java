@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Size; // Usado para delimitar las longitud
 // DTO con validaciones estrictas para el registro público de nuevos pacientes y creación de su cuenta de usuario.
 public record RegistroPacienteRequest(
     @NotBlank @Size(min = 4, max = 50) String username,
-    @NotBlank @Size(min = 6, max = 128) String password,
+    @NotBlank @Size(min = 8, max = 128, message = "La contraseña debe tener entre 8 y 128 caracteres") @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$", message = "La contraseña debe contener al menos una letra mayúscula, una minúscula y un número") String password,
     @NotBlank @Pattern(regexp = "^\\d{8}$", message = "El DNI debe tener 8 dígitos numéricos") String dni,
     @NotBlank @Size(max = 100) String nombres,
     @NotBlank @Size(max = 100) String apellidos,

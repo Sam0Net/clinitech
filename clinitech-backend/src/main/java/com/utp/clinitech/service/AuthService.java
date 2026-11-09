@@ -43,11 +43,22 @@ public class AuthService {
     this.pacienteService = pacienteService;
   }
 
+  // Hash BCrypt sintético precalculado para igualar el tiempo de cómputo en intentos con usuarios inexistentes (Anti-Timing Attack).
+  private static final String DUMMY_BCRYPT_HASH = "$2a$10$w8.dG5y7pYfB19pGskKjAe0vH6Yj3Z9tU0H3U4e5f6g7h8i9j0k1l";
+
   // Autentica credenciales de usuario, verifica rol solicitado y emite un token JWT.
   @Transactional
   public LoginResponse login(LoginRequest request) {
-    Usuario user = usuarios.findByUsernameIgnoreCase(request.username()).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "El usuario o la contraseña ingresados son incorrectos. Por favor, verifica tus datos e inténtalo nuevamente."));
-    if (!user.isActivo() || (request.role() != null && user.getRol() != request.role()) || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+    java.util.Optional<Usuario> userOpt = usuarios.findByUsernameIgnoreCase(request.username());
+    if (userOpt.isEmpty()) {
+      // Simula el cálculo de BCrypt para prevenir la enumeración de nombres de usuario mediante análisis de latencia
+      passwordEncoder.matches(request.password(), DUMMY_BCRYPT_HASH);
+      throw new ApiException(HttpStatus.UNAUTHORIZED, "El usuario o la contraseña ingresados son incorrectos. Por favor, verifica tus datos e inténtalo nuevamente.");
+    }
+
+    Usuario user = userOpt.get();
+    boolean passwordValida = passwordEncoder.matches(request.password(), user.getPasswordHash());
+    if (!user.isActivo() || (request.role() != null && user.getRol() != request.role()) || !passwordValida) {
       throw new ApiException(HttpStatus.UNAUTHORIZED, "El usuario o la contraseña ingresados son incorrectos. Por favor, verifica tus datos e inténtalo nuevamente.");
     }
     user.registrarAcceso(); // Actualiza la fecha del último ingreso.

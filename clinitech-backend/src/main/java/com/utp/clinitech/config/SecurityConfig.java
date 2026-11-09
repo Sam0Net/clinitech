@@ -33,10 +33,13 @@ public class SecurityConfig {
     };
   }
 
-  // Define las reglas de autorización de rutas, deshabilitación de CSRF y filtro JWT.
+  // Define las reglas de autorización de rutas, deshabilitación de CSRF, cabeceras de seguridad y filtro JWT.
   @Bean
   SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
     return http.csrf(csrf -> csrf.disable()).cors(Customizer.withDefaults()) // Deshabilita CSRF para API REST sin estado y activa CORS.
+        .headers(headers -> headers
+            .frameOptions(frame -> frame.deny()) // Previene Clickjacking (X-Frame-Options: DENY)
+            .contentTypeOptions(Customizer.withDefaults())) // Previene MIME-sniffing (X-Content-Type-Options: nosniff)
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Modo STATELESS sin sesiones HTTP en servidor.
         .exceptionHandling(errors -> errors.authenticationEntryPoint(
             (request, response, exception) -> response.sendError(401, "Autenticación requerida"))) // Manejador de error para peticiones no autenticadas.

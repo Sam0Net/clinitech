@@ -106,4 +106,34 @@ class ArbolBusquedaPacientesTest {
     arbol.insertar(crearPaciente("20000000", "B", "Dos"));
     assertEquals(3, arbol.altura());
   }
+
+  @Test
+  @DisplayName("Debe soportar inserciones y lecturas concurrentes sin corrupción de datos ni excepciones")
+  void testConcurrenciaThreadSafe() throws InterruptedException {
+    int hilos = 8;
+    int itemsPorHilo = 50;
+    java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(hilos);
+    java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(hilos);
+
+    for (int i = 0; i < hilos; i++) {
+      final int hiloId = i;
+      executor.submit(() -> {
+        try {
+          for (int j = 0; j < itemsPorHilo; j++) {
+            String dni = String.format("%02d%06d", hiloId, j);
+            arbol.insertar(crearPaciente(dni, "Nombre" + j, "Apellido" + j));
+            arbol.buscarPorDni(dni);
+            arbol.tamanio();
+          }
+        } finally {
+          latch.countDown();
+        }
+      });
+    }
+
+    boolean finished = latch.await(10, java.util.concurrent.TimeUnit.SECONDS);
+    executor.shutdown();
+    assertTrue(finished, "Todas las operaciones concurrentes deben completarse en el tiempo límite");
+    assertEquals(hilos * itemsPorHilo, arbol.tamanio());
+  }
 }

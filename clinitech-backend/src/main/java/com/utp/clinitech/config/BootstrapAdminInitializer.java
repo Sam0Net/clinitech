@@ -10,8 +10,11 @@ import com.utp.clinitech.dao.UsuarioDAO; // Usado para verificar existencia y pe
 import com.utp.clinitech.model.Usuario; // Usado para instanciar la entidad del usuario administrador.
 import com.utp.clinitech.model.enums.RolUsuario; // Usado para asignar el rol ADMIN a la cuenta creada.
 
+import org.springframework.core.annotation.Order;
+
 /** Crea el primer administrador sólo cuando se configuran variables de entorno explícitas. */
 @Component
+@Order(5)
 public class BootstrapAdminInitializer implements ApplicationRunner {
   private final UsuarioDAO usuarios; 
   private final PasswordEncoder passwordEncoder;

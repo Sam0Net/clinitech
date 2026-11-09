@@ -3,12 +3,13 @@ package com.utp.clinitech.dto.auth;
 import com.utp.clinitech.model.enums.RolUsuario; // Usado para tipar el rol asignado al nuevo usuario en el sistema.
 import jakarta.validation.constraints.NotBlank; // Usado para asegurar que username y password no sean cadenas vacías.
 import jakarta.validation.constraints.NotNull; // Usado para garantizar que el rol sea obligatorio.
+import jakarta.validation.constraints.Pattern; // Usado para validar complejidad de contraseña.
 import jakarta.validation.constraints.Size; // Usado para validar las longitudes mínimas y máximas de credenciales.
 
 // DTO para la creación administrativa de nuevas cuentas de usuario vinculadas a médicos o pacientes.
 public record CrearUsuarioRequest(
     @NotBlank @Size(min = 4, max = 50) String username,
-    @NotBlank @Size(min = 6, max = 128) String password,
+    @NotBlank @Size(min = 8, max = 128, message = "La contraseña debe tener entre 8 y 128 caracteres") @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$", message = "La contraseña debe contener al menos una letra mayúscula, una minúscula y un número") String password,
     @NotNull RolUsuario rol, 
     Long pacienteId, 
     Long medicoId) {
