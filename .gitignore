@@ -12,6 +12,9 @@
 !.env.example
 !.env.template
 
+# Planes y auditorías de seguridad internos
+security-mitigation-plan.md
+
 # Claves privadas, certificados y almacenes
 *.pem
 *.key
