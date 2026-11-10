@@ -49,24 +49,24 @@ class PacienteServiceTest {
   }
 
   @Test
-  @DisplayName("buscarPorDniEnArbol debe requerir rol ADMIN o RECEPCIONISTA")
+  @DisplayName("buscarPorDniEnArbol debe rechazar acceso a rol PACIENTE y requerir rol de personal (ADMIN, RECEPCIONISTA, MEDICO)")
   void testBuscarPorDniEnArbolRequiereRolesAdministrativos() {
     Usuario pacienteUser = new Usuario("paciente1", "hash", RolUsuario.PACIENTE, null, null);
     when(currentUser.required()).thenReturn(pacienteUser);
     doThrow(new ApiException(HttpStatus.FORBIDDEN, "No tienes permiso para esta operación"))
-        .when(currentUser).requireRole(pacienteUser, RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA);
+        .when(currentUser).requireRole(pacienteUser, RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA, RolUsuario.MEDICO);
 
     ApiException ex = assertThrows(ApiException.class, () -> pacienteService.buscarPorDniEnArbol("12345678"));
     assertEquals(HttpStatus.FORBIDDEN, ex.getStatus());
   }
 
   @Test
-  @DisplayName("listarEnOrdenArbol debe requerir rol ADMIN o RECEPCIONISTA")
+  @DisplayName("listarEnOrdenArbol debe rechazar acceso a rol PACIENTE y requerir rol de personal (ADMIN, RECEPCIONISTA, MEDICO)")
   void testListarEnOrdenArbolRequiereRolesAdministrativos() {
     Usuario pacienteUser = new Usuario("paciente1", "hash", RolUsuario.PACIENTE, null, null);
     when(currentUser.required()).thenReturn(pacienteUser);
     doThrow(new ApiException(HttpStatus.FORBIDDEN, "No tienes permiso para esta operación"))
-        .when(currentUser).requireRole(pacienteUser, RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA);
+        .when(currentUser).requireRole(pacienteUser, RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA, RolUsuario.MEDICO);
 
     ApiException ex = assertThrows(ApiException.class, () -> pacienteService.listarEnOrdenArbol());
     assertEquals(HttpStatus.FORBIDDEN, ex.getStatus());

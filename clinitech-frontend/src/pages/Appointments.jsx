@@ -13,7 +13,16 @@ export default function Appointments() {
   const [guardandoCita, setGuardandoCita] = useState(false);
 
   const user = JSON.parse(localStorage.getItem('clinitech_user') || '{}');
-  const isPaciente = user.role === 'PACIENTE';
+  const role = user.role || '';
+  const isPaciente = role === 'PACIENTE';
+  const isMedico = role === 'MEDICO';
+  const isRecepcionista = role === 'RECEPCIONISTA';
+  const isAdmin = role === 'ADMIN';
+
+  // Médicos solo visualizan su agenda y atienden; no reservan citas ni registran pacientes
+  const puedeAgendar = isAdmin || isRecepcionista || isPaciente;
+  const puedeRegistrarPaciente = isAdmin || isRecepcionista;
+  const puedeCambiarPrioridad = isAdmin || isRecepcionista;
 
   // Filtro por especialidad
   const [especialidadFiltro, setEspecialidadFiltro] = useState('');
@@ -117,6 +126,24 @@ export default function Appointments() {
     ? medicos.filter((m) => m.especialidad?.id === Number(especialidadFiltro))
     : medicos;
 
+  const handleCambiarPrioridad = async (id, prioridadActual) => {
+    const nuevaPrioridad = prioridadActual === 'URGENTE' ? 'NORMAL' : 'URGENTE';
+    setError('');
+    setSuccess('');
+    try {
+      await api(`/api/citas/${id}/prioridad`, {
+        method: 'PATCH',
+        body: { prioridad: nuevaPrioridad },
+      });
+      setSuccess(`Prioridad de la cita #${id} actualizada a ${nuevaPrioridad === 'URGENTE' ? 'Urgente (Triaje prioritario)' : 'Normal'}.`);
+      setCitas((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, prioridad: nuevaPrioridad } : c))
+      );
+    } catch (err) {
+      setError(err.message || 'Error al cambiar la prioridad de la cita.');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -128,7 +155,7 @@ export default function Appointments() {
         pacienteId: isPaciente ? null : (form.pacienteId ? Number(form.pacienteId) : null),
         medicoId: Number(form.medicoId),
         fechaHora: new Date(fechaHoraISO).toISOString(),
-        prioridad: form.prioridad,
+        prioridad: isPaciente ? 'NORMAL' : (form.prioridad || 'NORMAL'),
         motivoConsulta: form.motivoConsulta,
       };
       await api('/api/citas', { method: 'POST', body: payload });
@@ -287,16 +314,18 @@ export default function Appointments() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            {isPaciente ? 'Reservar Cita Médica' : 'Gestión y Programación de Citas'}
+            {isPaciente ? 'Reservar Cita Médica' : isMedico ? 'Mi Agenda de Consultas' : 'Gestión y Programación de Citas'}
           </h1>
           <p className="text-sm text-slate-600 mt-1">
             {isPaciente
               ? 'Elige tu especialidad médica de interés, médico tratante y horario disponible.'
+              : isMedico
+              ? 'Consulta las citas programadas de tus pacientes y gestiona su atención clínica.'
               : 'Administra la agenda médica hospitalaria y programa citas para los pacientes.'}
           </p>
         </div>
 
-        {!isPaciente && (
+        {puedeRegistrarPaciente && (
           <button
             type="button"
             onClick={() => setShowNuevoPaciente(!showNuevoPaciente)}
@@ -328,8 +357,8 @@ export default function Appointments() {
         </div>
       )}
 
-      {/* Formulario colapsable para registro rápido de paciente */}
-      {showNuevoPaciente && (
+      {/* Formulario colapsable para registro rápido de paciente (Solo Admisión / Recepción / Admin) */}
+      {puedeRegistrarPaciente && showNuevoPaciente && (
         <section
           aria-labelledby="registro-paciente-title"
           className="bg-slate-50/90 border border-slate-300 rounded-2xl p-6 space-y-4 shadow-xs"
@@ -453,8 +482,9 @@ export default function Appointments() {
         </section>
       )}
 
-      {/* Formulario de Agendamiento de Citas */}
-      <section aria-labelledby="form-agendar-heading" className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+      {/* Formulario de Agendamiento de Citas (Solo para Pacientes, Recepcionistas y Administradores; el médico no agenda citas) */}
+      {puedeAgendar && (
+        <section aria-labelledby="form-agendar-heading" className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
         <div className="pb-4 border-b border-slate-200">
           <h2 id="form-agendar-heading" className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <span className="material-symbols-outlined text-[#006591]">calendar_add_on</span>
@@ -571,20 +601,23 @@ export default function Appointments() {
             )}
           </div>
 
-          <div>
-            <label htmlFor="prioridad-cita-select" className="text-xs font-bold text-slate-700 block mb-1">
-              Nivel de Prioridad <span className="text-rose-600" aria-hidden="true">*</span>
-            </label>
-            <select
-              id="prioridad-cita-select"
-              value={form.prioridad}
-              onChange={(e) => setForm({ ...form, prioridad: e.target.value })}
-              className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white text-slate-900 focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/20 outline-none"
-            >
-              <option value="NORMAL">Normal (Consulta de rutina)</option>
-              <option value="URGENTE">Urgente (Atención prioritaria en triaje)</option>
-            </select>
-          </div>
+          {/* Solo recepción o administrador pueden asignar prioridad de triaje; el paciente siempre es NORMAL */}
+          {!isPaciente && (
+            <div>
+              <label htmlFor="prioridad-cita-select" className="text-xs font-bold text-slate-700 block mb-1">
+                Nivel de Prioridad de Triaje <span className="text-rose-600" aria-hidden="true">*</span>
+              </label>
+              <select
+                id="prioridad-cita-select"
+                value={form.prioridad}
+                onChange={(e) => setForm({ ...form, prioridad: e.target.value })}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white text-slate-900 focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/20 outline-none"
+              >
+                <option value="NORMAL">Normal (Consulta de rutina)</option>
+                <option value="URGENTE">Urgente (Atención prioritaria en triaje)</option>
+              </select>
+            </div>
+          )}
 
           <div className="md:col-span-2 lg:col-span-3">
             <label htmlFor="motivo-cita-input" className="text-xs font-bold text-slate-700 block mb-1">
@@ -613,6 +646,7 @@ export default function Appointments() {
           </div>
         </form>
       </section>
+      )}
 
       {/* Listado Accesible de Citas Registradas con Filtros de Ventanilla */}
       <section aria-labelledby="listado-citas-heading" className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -771,13 +805,26 @@ export default function Appointments() {
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                            c.prioridad === 'URGENTE' ? 'bg-rose-100 text-rose-800' : 'bg-sky-100 text-[#006591]'
-                          }`}
-                        >
-                          {c.prioridad}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                              c.prioridad === 'URGENTE' ? 'bg-rose-100 text-rose-800' : 'bg-sky-100 text-[#006591]'
+                            }`}
+                          >
+                            {c.prioridad}
+                          </span>
+                          {puedeCambiarPrioridad && c.estado !== 'ATENDIDA' && c.estado !== 'COMPLETADA' && c.estado !== 'CANCELADA' && (
+                            <button
+                              type="button"
+                              onClick={() => handleCambiarPrioridad(c.id, c.prioridad)}
+                              title={`Cambiar prioridad a ${c.prioridad === 'URGENTE' ? 'NORMAL' : 'URGENTE'}`}
+                              className="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+                              aria-label={`Cambiar prioridad de ${c.pacienteNombre} a ${c.prioridad === 'URGENTE' ? 'NORMAL' : 'URGENTE'}`}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4">
                         {c.estado === 'COMPLETADA' || c.estado === 'ATENDIDA' ? (

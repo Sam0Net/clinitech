@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional; // Manejo de tr
 import com.utp.clinitech.dao.CitaDAO; // Acceso a datos para la entidad Cita
 import com.utp.clinitech.dao.PacienteDAO; // Acceso a datos para la entidad Paciente
 import com.utp.clinitech.dto.CambiarEstadoCitaRequest; // DTO para cambiar el estado de una cita
+import com.utp.clinitech.dto.CambiarPrioridadCitaRequest; // DTO para cambiar la prioridad en triaje
 import com.utp.clinitech.dto.CitaRequest; // DTO para crear una nueva cita
 import com.utp.clinitech.dto.CitaResponse; // DTO para la respuesta de una cita
 import com.utp.clinitech.dto.ReprogramarCitaRequest; // DTO para reprogramar una cita
@@ -20,6 +21,7 @@ import com.utp.clinitech.model.Medico; // Modelo de la entidad Medico
 import com.utp.clinitech.model.Paciente; // Modelo de la entidad Paciente
 import com.utp.clinitech.model.Usuario; // Modelo de la entidad Usuario
 import com.utp.clinitech.model.enums.EstadoCita; // Enum para los estados posibles de una cita
+import com.utp.clinitech.model.enums.PrioridadCita; // Enum para los niveles de prioridad de una cita
 import com.utp.clinitech.model.enums.RolUsuario; // Enum para los roles posibles de un usuario
 import com.utp.clinitech.util.ColaPrioridad; // Clase para manejar la cola de prioridad de citas
 
@@ -58,7 +60,14 @@ public class CitaService {
     Medico medico = medicos.entidad(request.medicoId());
     if (citas.existsByMedicoIdAndFechaHora(medico.getId(), request.fechaHora())) // Verifica si ya existe una cita para el médico en la fecha y hora especificadas. Si es así, lanza una excepción indicando que el horario seleccionado ya no está disponible.
       throw new ApiException(HttpStatus.CONFLICT, "El horario seleccionado ya no está disponible");
-    Cita cita = new Cita(pacientesEntidad(pacienteId), medico, request.fechaHora(), request.prioridad(),
+
+    // Los pacientes no pueden autoasignarse prioridad de triaje; se asigna NORMAL por defecto.
+    // Solo el personal administrativo (RECEPCIONISTA / ADMIN) puede asignar URGENTE.
+    PrioridadCita prioridad = (actor.getRol() == RolUsuario.PACIENTE)
+        ? PrioridadCita.NORMAL
+        : (request.prioridad() != null ? request.prioridad() : PrioridadCita.NORMAL);
+
+    Cita cita = new Cita(pacientesEntidad(pacienteId), medico, request.fechaHora(), prioridad,
         request.motivoConsulta().trim()); // Crea una nueva instancia de la entidad Cita con los datos proporcionados en la solicitud.
     return ApiMapper.cita(citas.save(cita));
   }
@@ -193,6 +202,19 @@ public class CitaService {
     if (cita.getEstado() == EstadoCita.ATENDIDA)
       throw new ApiException(HttpStatus.CONFLICT, "Una cita atendida no puede cambiar de estado");
     cita.cambiarEstado(request.estado());
+    return ApiMapper.cita(cita);
+  }
+
+  @Transactional
+  // Cambia el nivel de prioridad de una cita existente (exclusivo para Administrador y Recepcionista en triaje).
+  public CitaResponse cambiarPrioridad(Long id, CambiarPrioridadCitaRequest request) {
+    Cita cita = obtenerEntidad(id);
+    Usuario actor = currentUser.required();
+    currentUser.requireRole(actor, RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA);
+    if (cita.getEstado() == EstadoCita.ATENDIDA || cita.getEstado() == EstadoCita.CANCELADA) {
+      throw new ApiException(HttpStatus.CONFLICT, "No se puede cambiar la prioridad de una cita atendida o cancelada");
+    }
+    cita.cambiarPrioridad(request.prioridad());
     return ApiMapper.cita(cita);
   }
 

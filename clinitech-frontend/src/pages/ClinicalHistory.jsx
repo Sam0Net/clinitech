@@ -3,7 +3,12 @@ import { api } from '../api';
 
 export default function ClinicalHistory() {
   const user = JSON.parse(localStorage.getItem('clinitech_user') || '{}');
-  const isPaciente = user.role === 'PACIENTE';
+  const role = user.role || '';
+  const isPaciente = role === 'PACIENTE';
+  const isMedico = role === 'MEDICO';
+  const isRecepcionista = role === 'RECEPCIONISTA';
+  const isAdmin = role === 'ADMIN';
+  const puedeAdmitir = isAdmin || isRecepcionista;
 
   const [tab, setTab] = useState('buscar'); // 'buscar' | 'directorio'
   const [dni, setDni] = useState('');
@@ -44,15 +49,25 @@ export default function ClinicalHistory() {
       const pac = await api(`/api/pacientes/arbol/buscar/${dniLimpio}`);
       setPaciente(pac);
 
-      // Cargar historial de atenciones clínicas
-      const hist = await api(`/api/consultas?pacienteId=${pac.id}`);
-      setConsultas(Array.isArray(hist) ? hist : (hist?.content || []));
+      // Cargar historial de atenciones clínicas de forma aislada
+      try {
+        const hist = await api(`/api/consultas?pacienteId=${pac.id}`);
+        setConsultas(Array.isArray(hist) ? hist : (hist?.content || []));
+      } catch (histErr) {
+        console.warn('No se pudieron cargar las consultas del paciente:', histErr);
+        setConsultas([]);
+      }
     } catch {
       setPaciente(null);
       setConsultas([]);
-      setError(`El documento DNI ${dniLimpio} no fue encontrado en el sistema. Puedes completar el formulario de admisión rápida a continuación.`);
-      setShowAdmision(true);
-      setAdmisionForm((prev) => ({ ...prev, dni: dniLimpio }));
+      if (puedeAdmitir) {
+        setError(`El documento DNI ${dniLimpio} no fue encontrado en el sistema. Puedes completar el formulario de admisión rápida a continuación.`);
+        setShowAdmision(true);
+        setAdmisionForm((prev) => ({ ...prev, dni: dniLimpio }));
+      } else {
+        setError(`El documento DNI ${dniLimpio} no fue encontrado en el sistema.`);
+        setShowAdmision(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -139,11 +154,13 @@ export default function ClinicalHistory() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            {isPaciente ? 'Mi Historial Clínico' : 'Admisión y Ficha Clínica'}
+            {isPaciente ? 'Mi Historial Clínico' : (isMedico ? 'Ficha Clínica y Diagnóstico' : 'Admisión y Ficha Clínica')}
           </h1>
           <p className="text-sm text-slate-600 mt-1">
             {isPaciente
               ? 'Consulta tus datos clínicos registrados, diagnósticos y atenciones médicas realizadas.'
+              : isMedico
+              ? 'Búsqueda de pacientes por DNI y consulta de antecedentes clínicos.'
               : 'Búsqueda instantánea de pacientes por DNI, registro de admisión y consulta de historial médico.'}
           </p>
         </div>
@@ -270,8 +287,8 @@ export default function ClinicalHistory() {
             </form>
           )}
 
-          {/* Formulario de Admisión de Paciente si no existe en el sistema */}
-          {!isPaciente && showAdmision && (
+          {/* Formulario de Admisión de Paciente si no existe en el sistema (Exclusivo Admisión / Recepción) */}
+          {puedeAdmitir && showAdmision && (
             <section
               aria-labelledby="form-admision-title"
               className="bg-sky-50/60 border-2 border-dashed border-[#006591] rounded-2xl p-6 space-y-4 shadow-xs animate-in fade-in duration-150"

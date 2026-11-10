@@ -96,4 +96,8 @@ public class Cita {
   public void cambiarEstado(EstadoCita estado) {
     this.estado = estado;
   }
+
+  public void cambiarPrioridad(PrioridadCita prioridad) {
+    this.prioridad = prioridad;
+  }
 }

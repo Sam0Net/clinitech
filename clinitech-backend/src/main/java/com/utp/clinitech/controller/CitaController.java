@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping; // Mapeo de la ru
 import org.springframework.web.bind.annotation.RequestParam; // Extracción de parámetros de consulta de la URL en los métodos del controlador.
 import org.springframework.web.bind.annotation.RestController; // Indica que la clase es un controlador REST.
 import com.utp.clinitech.dto.CambiarEstadoCitaRequest; // DTO para cambiar el estado de una cita.
+import com.utp.clinitech.dto.CambiarPrioridadCitaRequest; // DTO para cambiar la prioridad de una cita en triaje.
 import com.utp.clinitech.dto.CitaRequest; // DTO para crear una nueva cita.
 import com.utp.clinitech.dto.CitaResponse; // DTO para representar la respuesta de una cita.
 import com.utp.clinitech.dto.ReprogramarCitaRequest; // DTO para reprogramar una cita.
@@ -64,5 +65,10 @@ public class CitaController {
   @PatchMapping("/{id}/estado") // Define un endpoint para cambiar el estado de una cita existente.
   public CitaResponse estado(@PathVariable Long id, @Valid @RequestBody CambiarEstadoCitaRequest request) {
     return service.cambiarEstado(id, request); // Retorna la cita con el estado actualizado después de cambiar su estado según la solicitud proporcionada.
+  }
+
+  @PatchMapping("/{id}/prioridad") // Define un endpoint para cambiar la prioridad (triaje) de una cita existente.
+  public CitaResponse prioridad(@PathVariable Long id, @Valid @RequestBody CambiarPrioridadCitaRequest request) {
+    return service.cambiarPrioridad(id, request);
   }
 }

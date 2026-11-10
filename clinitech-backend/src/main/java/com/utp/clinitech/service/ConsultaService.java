@@ -50,15 +50,15 @@ public class ConsultaService {
         .save(new Consulta(cita, request.diagnostico().trim(), request.tratamiento().trim(), request.observaciones())));
   }
 
-  // Obtiene el historial clínico de un paciente asegurando que solo el paciente,
-  // su médico o admin puedan verlo.
+  // Obtiene el historial clínico de un paciente asegurando que solo el paciente titular o el personal asistencial y administrativo (ADMIN, MEDICO, RECEPCIONISTA) puedan verlo.
   public List<ConsultaResponse> historial(Long pacienteId) {
     Usuario actor = currentUser.required();
     boolean own = actor.getRol() == RolUsuario.PACIENTE && actor.getPaciente() != null
         && actor.getPaciente().getId().equals(pacienteId);
-    boolean treats = actor.getRol() == RolUsuario.MEDICO && actor.getMedico() != null
-        && citas.existsByMedicoIdAndPacienteId(actor.getMedico().getId(), pacienteId);
-    if (!own && !treats && actor.getRol() != RolUsuario.ADMIN)
+    boolean isStaff = actor.getRol() == RolUsuario.ADMIN
+        || actor.getRol() == RolUsuario.MEDICO
+        || actor.getRol() == RolUsuario.RECEPCIONISTA;
+    if (!own && !isStaff)
       throw new ApiException(HttpStatus.FORBIDDEN, "No puedes acceder a este historial");
     return consultas.findByCitaPacienteIdOrderByFechaAtencionDesc(pacienteId).stream().map(ApiMapper::consulta)
         .toList();

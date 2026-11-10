@@ -42,16 +42,23 @@ public class PacienteService {
 
   // Búsqueda rápida en memoria O(log n) por DNI usando el Árbol Binario de Búsqueda (restringido a gestión clínica).
   public PacienteResponse buscarPorDniEnArbol(String dni) {
-    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA); // Exclusivo para Admin o Recepcionista.
-    return arbolPacientes.buscarPorDni(dni) // Busca el nodo correspondiente al DNI en el ABB.
+    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA, RolUsuario.MEDICO); // Exclusivo para personal clínico y administrativo.
+    String dniLimpio = dni == null ? "" : dni.trim();
+    return arbolPacientes.buscarPorDni(dniLimpio) // Busca el nodo correspondiente al DNI en el ABB.
         .filter(p -> p.isActivo()) // Asegura que el paciente se encuentre en estado activo.
         .map(p -> ApiMapper.paciente(p)) // Transforma la entidad al DTO de respuesta.
-        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Paciente no encontrado en el índice del árbol"));
+        .orElseGet(() -> pacientes.findByDni(dniLimpio)
+            .filter(p -> p.isActivo())
+            .map(p -> {
+              arbolPacientes.insertar(p); // Resincroniza el árbol si el registro faltaba en memoria
+              return ApiMapper.paciente(p);
+            })
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Paciente no encontrado en el sistema")));
   }
 
   // Obtiene todos los pacientes ordenados ascendentemente mediante el recorrido In-Orden (Izquierda - Raíz - Derecha).
   public List<PacienteResponse> listarEnOrdenArbol() {
-    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA); // Exclusivo para Admin o Recepcionista.
+    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA, RolUsuario.MEDICO); // Exclusivo para personal clínico y administrativo.
     return arbolPacientes.enOrden().stream() // Ejecuta el recorrido in-order en tiempo O(n).
         .filter(p -> p.isActivo())
         .map(p -> ApiMapper.paciente(p))
@@ -60,7 +67,7 @@ public class PacienteService {
 
   // Búsqueda y listado paginado en base de datos ordenado alfabéticamente por apellidos.
   public PageResponse<PacienteResponse> listar(String q, int page, int size) {
-    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA); // Exclusivo para Admin o Recepcionista.
+    currentUser.requireRole(currentUser.required(), RolUsuario.ADMIN, RolUsuario.RECEPCIONISTA, RolUsuario.MEDICO); // Exclusivo para personal clínico y administrativo.
     Page<Paciente> result = pacientes.buscarActivos(q == null ? "" : q.trim(),
         PageRequest.of(page, Math.min(size, 100), Sort.by("apellidos").ascending()));
     return PageResponse.from(result.map(p -> ApiMapper.paciente(p))); // Retorna resultado encapsulado con metadatos de paginación.

@@ -21,6 +21,9 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
         if (item.path === '/appointments') return { ...item, label: 'Mis Citas' };
         if (item.path === '/history') return { ...item, label: 'Mi Historial' };
       }
+      if (role === 'MEDICO') {
+        if (item.path === '/appointments') return { ...item, label: 'Mi Agenda' };
+      }
       return item;
     });
 
